@@ -1,4 +1,5 @@
 
+using WorkManagementPortal.Backend.API.Extensions;
 using WorkManagementPortal.Backend.Infrastructure.Registrations;
 
 namespace WorkManagementPortal.Backend.API
@@ -10,12 +11,13 @@ namespace WorkManagementPortal.Backend.API
             var builder = WebApplication.CreateBuilder(args);
 
             // Add services to the container.
-
+            builder.Services.APIConfiguration();
+            builder.Services.InfraStructureConfiguration(builder.Configuration);
             builder.Services.AddControllers();
             // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
             builder.Services.AddEndpointsApiExplorer();
             builder.Services.AddSwaggerGen();
-            builder.Services.InfraStructureConfiguration(builder.Configuration);
+            
             var app = builder.Build();
 
             // Configure the HTTP request pipeline.

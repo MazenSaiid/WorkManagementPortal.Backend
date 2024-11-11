@@ -19,13 +19,20 @@ namespace WorkManagementPortal.Backend.Infrastructure.Registrations
     {
         public static IServiceCollection InfraStructureConfiguration(this IServiceCollection services, IConfiguration configuration)
         {
-            // Add services to the container
-            services.AddDbContext<ApplicationDbContext>(options =>
-                options.UseSqlServer(configuration.GetConnectionString("DefaultConnection")));
 
+            //Application DbContext
+            services.AddDbContext<ApplicationDbContext>(options =>
+            {
+                options.UseSqlServer(configuration.GetConnectionString("DefaultConnection"), builder =>
+                {
+                    builder.EnableRetryOnFailure(5, TimeSpan.FromSeconds(10), null);
+                });
+            });
+
+            //configure identity
             services.AddIdentity<User, IdentityRole>()
-                .AddEntityFrameworkStores<ApplicationDbContext>()
-                .AddDefaultTokenProviders();
+                .AddEntityFrameworkStores<ApplicationDbContext>().
+                AddDefaultTokenProviders();
 
             // Configure JWT Authentication
             services.AddAuthentication(options =>

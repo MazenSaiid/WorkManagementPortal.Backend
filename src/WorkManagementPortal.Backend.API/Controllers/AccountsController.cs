@@ -15,7 +15,7 @@ namespace WorkManagementPortal.Backend.API.Controllers
     public class AccountsController : ControllerBase
     {
         private readonly UserManager<User> _userManager;
-        private readonly RoleManager<IdentityRole> _roleManager; // RoleManager should use IdentityRole
+        private readonly RoleManager<IdentityRole> _roleManager;
         private readonly IConfiguration _configuration;
 
         public AccountsController(UserManager<User> userManager, RoleManager<IdentityRole> roleManager, IConfiguration configuration)
@@ -78,7 +78,7 @@ namespace WorkManagementPortal.Backend.API.Controllers
                 var authClaims = new List<Claim>
                 {
                     new Claim(ClaimTypes.Name, user.UserName),
-                    new Claim(ClaimTypes.Email, user.Email) 
+                    new Claim(ClaimTypes.Email, user?.Email) 
                 };
 
                 // Get user roles and add them as claims

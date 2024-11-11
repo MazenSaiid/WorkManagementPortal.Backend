@@ -13,7 +13,7 @@ namespace WorkManagementPortal.Backend.Infrastructure.Configurations
     {
         public void Configure(EntityTypeBuilder<User> builder)
         {
-            throw new NotImplementedException();
+           
         }
     }
 }
