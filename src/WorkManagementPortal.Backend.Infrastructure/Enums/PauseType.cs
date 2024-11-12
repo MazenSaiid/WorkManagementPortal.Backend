@@ -4,10 +4,11 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace WorkManagementPortal.Backend.Infrastructure.Models
+namespace WorkManagementPortal.Backend.Infrastructure.Enums
 {
-    public class BaseEntity<T>
+    public enum PauseType
     {
-        public T Id { get; set; }
+        Meeting,
+        Break
     }
 }

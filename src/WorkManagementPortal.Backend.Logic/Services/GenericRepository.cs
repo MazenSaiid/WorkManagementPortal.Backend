@@ -12,7 +12,7 @@ using WorkManagementPortal.Backend.Logic.Interfaces;
 namespace WorkManagementPortal.Backend.Logic.Services
 {
 
-    public class GenericRepository<T> : IGenericRepository<T> where T : BaseEntity<int>
+    public class GenericRepository<T> : IGenericRepository<T> where T : class
     {
         private readonly ApplicationDbContext _context;
 

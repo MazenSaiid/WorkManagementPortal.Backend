@@ -1,6 +1,7 @@
 
 using WorkManagementPortal.Backend.API.Extensions;
 using WorkManagementPortal.Backend.Infrastructure.Registrations;
+using WorkManagementPortal.Backend.Logic.Interfaces;
 
 namespace WorkManagementPortal.Backend.API
 {
@@ -9,8 +10,8 @@ namespace WorkManagementPortal.Backend.API
         public static void Main(string[] args)
         {
             var builder = WebApplication.CreateBuilder(args);
-
-            // Add services to the container.
+            
+           
             builder.Services.APIConfiguration();
             builder.Services.InfraStructureConfiguration(builder.Configuration);
             builder.Services.AddControllers();
@@ -34,7 +35,7 @@ namespace WorkManagementPortal.Backend.API
             app.UseCors("DefaultPolicy");
 
             app.MapControllers();
-
+            APIRegistration.RolesSeedingConfiguration(app);
             app.Run();
         }
     }

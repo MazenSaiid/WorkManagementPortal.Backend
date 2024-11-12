@@ -9,7 +9,7 @@ using WorkManagementPortal.Backend.Infrastructure.Models;
 namespace WorkManagementPortal.Backend.Logic.Interfaces
 {
     
-        public interface IGenericRepository<T> where T : BaseEntity<int>
+        public interface IGenericRepository<T> where T : class
         {
             Task AddAsync(T entity);
             Task UpdateAsync(int id, T entity);

@@ -13,7 +13,16 @@ namespace WorkManagementPortal.Backend.Infrastructure.Configurations
     {
         public void Configure(EntityTypeBuilder<User> builder)
         {
-           
+            // Configure self-referencing relationships
+            builder.HasOne(u => u.Supervisor)
+                .WithMany(u => u.Workers)  // One supervisor to many workers
+                .HasForeignKey(u => u.SupervisorId)
+                .OnDelete(DeleteBehavior.Restrict);  // Restrict deletion if a supervisor has workers
+
+            builder.HasOne(u => u.TeamLeader)
+                .WithMany(u => u.Supervisors)  // One team leader to many supervisors
+                .HasForeignKey(u => u.TeamLeaderId)
+                .OnDelete(DeleteBehavior.Restrict);
         }
     }
 }

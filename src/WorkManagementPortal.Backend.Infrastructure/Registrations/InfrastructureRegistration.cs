@@ -17,6 +17,8 @@ namespace WorkManagementPortal.Backend.Infrastructure.Registrations
 {
     public static class InfrastructureRegistration
     {
+        
+
         public static IServiceCollection InfraStructureConfiguration(this IServiceCollection services, IConfiguration configuration)
         {
 
