@@ -9,9 +9,9 @@ using WorkManagementPortal.Backend.Infrastructure.Models;
 
 namespace WorkManagementPortal.Backend.Infrastructure.Configurations
 {
-    public class WorkLogConfiguration : IEntityTypeConfiguration<WorkLog>
+    public class WorkLogConfiguration : IEntityTypeConfiguration<WorkTrackingLog>
     {
-        public void Configure(EntityTypeBuilder<WorkLog> builder)
+        public void Configure(EntityTypeBuilder<WorkTrackingLog> builder)
         {
             builder.HasOne(t => t.User)
             .WithMany()

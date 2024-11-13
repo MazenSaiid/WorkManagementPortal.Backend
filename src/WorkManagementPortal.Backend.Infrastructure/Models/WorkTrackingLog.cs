@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 
 namespace WorkManagementPortal.Backend.Infrastructure.Models
 {
-    public class WorkLog
+    public class WorkTrackingLog
     {
         public int Id { get; set; }
         public string UserId { get; set; }  // Foreign Key to User
@@ -15,14 +15,14 @@ namespace WorkManagementPortal.Backend.Infrastructure.Models
         public DateTime ClockIn { get; set; }
         public DateTime ClockOut { get; set; }
 
-        public ICollection<Pause> Pauses { get; set; }  // Collection of pauses
+        public ICollection<PauseTrackingLog> PauseTrackingLogs { get; set; }  // Collection of pauses
 
         public double TotalWorkingHours
         {
             get
             {
                 // Calculate total working hours, subtracting all pauses
-                var totalPauseTime = Pauses?.Sum(p => p.DurationInMinutes) ?? 0;
+                var totalPauseTime = PauseTrackingLogs?.Sum(p => p.DurationInMinutes) ?? 0;
                 return (ClockOut - ClockIn).TotalHours - totalPauseTime / 60;
             }
         }
@@ -32,7 +32,7 @@ namespace WorkManagementPortal.Backend.Infrastructure.Models
             get
             {
                 // Calculate total pause hours by summing up durations of all pauses
-                return (Pauses?.Sum(p => p.DurationInMinutes) ?? 0) / 60;
+                return (PauseTrackingLogs?.Sum(p => p.DurationInMinutes) ?? 0) / 60;
             }
         }
     }

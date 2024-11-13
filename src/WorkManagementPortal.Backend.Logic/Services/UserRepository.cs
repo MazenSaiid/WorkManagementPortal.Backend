@@ -16,6 +16,20 @@ namespace WorkManagementPortal.Backend.Logic.Services
         {
             _context = context;
         }
-       
+
+        public Task<IEnumerable<User>> GetAllEmployeesAsync()
+        {
+            throw new NotImplementedException();
+        }
+
+        public Task<IEnumerable<User>> GetAllSupervisorsAsync()
+        {
+            throw new NotImplementedException();
+        }
+
+        public Task<IEnumerable<User>> GetAllTeamLeadersAsync()
+        {
+            throw new NotImplementedException();
+        }
     }
 }

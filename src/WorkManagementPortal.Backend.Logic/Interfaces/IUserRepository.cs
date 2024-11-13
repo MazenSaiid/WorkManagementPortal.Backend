@@ -9,5 +9,8 @@ namespace WorkManagementPortal.Backend.Logic.Interfaces
 {
     public interface IUserRepository :IGenericRepository<User>
     {
+        Task<IEnumerable<User>> GetAllSupervisorsAsync();
+        Task<IEnumerable<User>> GetAllTeamLeadersAsync();
+        Task<IEnumerable<User>> GetAllEmployeesAsync();
     }
 }

@@ -7,7 +7,7 @@ using WorkManagementPortal.Backend.Infrastructure.Enums;
 
 namespace WorkManagementPortal.Backend.Infrastructure.Models
 {
-    public class Shift
+    public class WorkShift
     {
         public int Id { get; set; }
         public string UserId { get; set; } = string.Empty;  // Foreign Key to User table

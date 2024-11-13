@@ -9,9 +9,9 @@ using WorkManagementPortal.Backend.Infrastructure.Models;
 
 namespace WorkManagementPortal.Backend.Infrastructure.Configurations
 {
-    public class LeaveRequestConfiguration :IEntityTypeConfiguration<LeaveRequest>
+    public class LeaveRequestConfiguration :IEntityTypeConfiguration<LeaveEmployeeRequest>
     {
-        public void Configure(EntityTypeBuilder<LeaveRequest> builder)
+        public void Configure(EntityTypeBuilder<LeaveEmployeeRequest> builder)
         {
             // LeaveRequest to User relationship
             builder.HasOne(l => l.User)

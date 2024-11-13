@@ -2,7 +2,7 @@
 
 namespace WorkManagementPortal.Backend.Infrastructure.Models
 {
-    public class LeaveRequest
+    public class LeaveEmployeeRequest
     {
         public int Id { get; set; }
         public string UserId { get; set; } = string.Empty;  // Foreign Key to User

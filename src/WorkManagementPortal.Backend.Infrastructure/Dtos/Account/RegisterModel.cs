@@ -15,5 +15,7 @@ namespace WorkManagementPortal.Backend.API.Dtos.Account
         public string Password { get; set; }
         [Required(ErrorMessage = "Role is required")]
         public string RoleName { get; set; } // Optional role name for assignment
+        public string? SupervisorId { get; set; }
+        public string? TeamLeaderId { get; set; }
     }
 }

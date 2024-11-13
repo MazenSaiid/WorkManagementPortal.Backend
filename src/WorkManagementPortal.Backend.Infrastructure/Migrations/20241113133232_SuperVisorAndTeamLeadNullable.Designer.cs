@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using WorkManagementPortal.Backend.Infrastructure.Context;
 
@@ -11,9 +12,11 @@ using WorkManagementPortal.Backend.Infrastructure.Context;
 namespace WorkManagementPortal.Backend.Infrastructure.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20241113133232_SuperVisorAndTeamLeadNullable")]
+    partial class SuperVisorAndTeamLeadNullable
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -155,7 +158,7 @@ namespace WorkManagementPortal.Backend.Infrastructure.Migrations
                     b.ToTable("AspNetUserTokens", (string)null);
                 });
 
-            modelBuilder.Entity("WorkManagementPortal.Backend.Infrastructure.Models.LeaveEmployeeRequest", b =>
+            modelBuilder.Entity("WorkManagementPortal.Backend.Infrastructure.Models.LeaveRequest", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
@@ -183,10 +186,10 @@ namespace WorkManagementPortal.Backend.Infrastructure.Migrations
 
                     b.HasIndex("UserId");
 
-                    b.ToTable("LeaveEmployeeRequests");
+                    b.ToTable("LeaveRequests");
                 });
 
-            modelBuilder.Entity("WorkManagementPortal.Backend.Infrastructure.Models.PauseTrackingLog", b =>
+            modelBuilder.Entity("WorkManagementPortal.Backend.Infrastructure.Models.Pause", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
@@ -206,14 +209,43 @@ namespace WorkManagementPortal.Backend.Infrastructure.Migrations
                     b.Property<int>("WorkLogId")
                         .HasColumnType("int");
 
-                    b.Property<int>("WorkTrackingLogId")
+                    b.HasKey("Id");
+
+                    b.HasIndex("WorkLogId");
+
+                    b.ToTable("Pauses");
+                });
+
+            modelBuilder.Entity("WorkManagementPortal.Backend.Infrastructure.Models.Shift", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
                         .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<DateTime>("EndTime")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("ShiftName")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<int>("ShiftType")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("StartTime")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("UserId")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(450)");
 
                     b.HasKey("Id");
 
-                    b.HasIndex("WorkTrackingLogId");
+                    b.HasIndex("UserId");
 
-                    b.ToTable("PauseTrackingLogs");
+                    b.ToTable("Shifts");
                 });
 
             modelBuilder.Entity("WorkManagementPortal.Backend.Infrastructure.Models.User", b =>
@@ -238,12 +270,6 @@ namespace WorkManagementPortal.Backend.Infrastructure.Migrations
                     b.Property<string>("FirstName")
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
-
-                    b.Property<bool>("IsSupervisor")
-                        .HasColumnType("bit");
-
-                    b.Property<bool>("IsTeamLeader")
-                        .HasColumnType("bit");
 
                     b.Property<string>("LastName")
                         .IsRequired()
@@ -305,39 +331,7 @@ namespace WorkManagementPortal.Backend.Infrastructure.Migrations
                     b.ToTable("AspNetUsers", (string)null);
                 });
 
-            modelBuilder.Entity("WorkManagementPortal.Backend.Infrastructure.Models.WorkShift", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
-
-                    b.Property<DateTime>("EndTime")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("ShiftName")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<int>("ShiftType")
-                        .HasColumnType("int");
-
-                    b.Property<DateTime>("StartTime")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("UserId")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(450)");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("UserId");
-
-                    b.ToTable("WorkShifts");
-                });
-
-            modelBuilder.Entity("WorkManagementPortal.Backend.Infrastructure.Models.WorkTrackingLog", b =>
+            modelBuilder.Entity("WorkManagementPortal.Backend.Infrastructure.Models.WorkLog", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
@@ -359,7 +353,7 @@ namespace WorkManagementPortal.Backend.Infrastructure.Migrations
 
                     b.HasIndex("UserId");
 
-                    b.ToTable("WorkTrackingLogs");
+                    b.ToTable("WorkLogs");
                 });
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityRoleClaim<string>", b =>
@@ -413,7 +407,7 @@ namespace WorkManagementPortal.Backend.Infrastructure.Migrations
                         .IsRequired();
                 });
 
-            modelBuilder.Entity("WorkManagementPortal.Backend.Infrastructure.Models.LeaveEmployeeRequest", b =>
+            modelBuilder.Entity("WorkManagementPortal.Backend.Infrastructure.Models.LeaveRequest", b =>
                 {
                     b.HasOne("WorkManagementPortal.Backend.Infrastructure.Models.User", "User")
                         .WithMany()
@@ -424,15 +418,26 @@ namespace WorkManagementPortal.Backend.Infrastructure.Migrations
                     b.Navigation("User");
                 });
 
-            modelBuilder.Entity("WorkManagementPortal.Backend.Infrastructure.Models.PauseTrackingLog", b =>
+            modelBuilder.Entity("WorkManagementPortal.Backend.Infrastructure.Models.Pause", b =>
                 {
-                    b.HasOne("WorkManagementPortal.Backend.Infrastructure.Models.WorkTrackingLog", "WorkTrackingLog")
-                        .WithMany("PauseTrackingLogs")
-                        .HasForeignKey("WorkTrackingLogId")
+                    b.HasOne("WorkManagementPortal.Backend.Infrastructure.Models.WorkLog", "WorkLog")
+                        .WithMany("Pauses")
+                        .HasForeignKey("WorkLogId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.Navigation("WorkTrackingLog");
+                    b.Navigation("WorkLog");
+                });
+
+            modelBuilder.Entity("WorkManagementPortal.Backend.Infrastructure.Models.Shift", b =>
+                {
+                    b.HasOne("WorkManagementPortal.Backend.Infrastructure.Models.User", "User")
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("User");
                 });
 
             modelBuilder.Entity("WorkManagementPortal.Backend.Infrastructure.Models.User", b =>
@@ -452,18 +457,7 @@ namespace WorkManagementPortal.Backend.Infrastructure.Migrations
                     b.Navigation("TeamLeader");
                 });
 
-            modelBuilder.Entity("WorkManagementPortal.Backend.Infrastructure.Models.WorkShift", b =>
-                {
-                    b.HasOne("WorkManagementPortal.Backend.Infrastructure.Models.User", "User")
-                        .WithMany()
-                        .HasForeignKey("UserId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("User");
-                });
-
-            modelBuilder.Entity("WorkManagementPortal.Backend.Infrastructure.Models.WorkTrackingLog", b =>
+            modelBuilder.Entity("WorkManagementPortal.Backend.Infrastructure.Models.WorkLog", b =>
                 {
                     b.HasOne("WorkManagementPortal.Backend.Infrastructure.Models.User", "User")
                         .WithMany()
@@ -481,9 +475,9 @@ namespace WorkManagementPortal.Backend.Infrastructure.Migrations
                     b.Navigation("Workers");
                 });
 
-            modelBuilder.Entity("WorkManagementPortal.Backend.Infrastructure.Models.WorkTrackingLog", b =>
+            modelBuilder.Entity("WorkManagementPortal.Backend.Infrastructure.Models.WorkLog", b =>
                 {
-                    b.Navigation("PauseTrackingLogs");
+                    b.Navigation("Pauses");
                 });
 #pragma warning restore 612, 618
         }

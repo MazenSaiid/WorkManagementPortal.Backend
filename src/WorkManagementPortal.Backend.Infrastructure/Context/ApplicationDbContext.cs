@@ -16,10 +16,10 @@ namespace WorkManagementPortal.Backend.Infrastructure.Context
         {
 
         }
-        public DbSet<Shift> Shifts { get; set; }
-        public DbSet<WorkLog> WorkLogs { get; set; }
-        public DbSet<LeaveRequest> LeaveRequests { get; set; }
-        public DbSet<Pause> Pauses { get; set; }
+        public DbSet<WorkShift> WorkShifts { get; set; }
+        public DbSet<WorkTrackingLog> WorkTrackingLogs { get; set; }
+        public DbSet<LeaveEmployeeRequest> LeaveEmployeeRequests { get; set; }
+        public DbSet<PauseTrackingLog> PauseTrackingLogs { get; set; }
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             base.OnModelCreating(modelBuilder);

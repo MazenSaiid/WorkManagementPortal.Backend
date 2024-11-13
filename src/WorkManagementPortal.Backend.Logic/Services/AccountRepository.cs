@@ -44,32 +44,33 @@ namespace WorkManagementPortal.Backend.Logic.Services
                 return new UserResponse(false, "Email is already in use.");
             }
 
-            var user = new User {
-                UserName = string.Concat(model.FirstName,model.LastName), 
-                Email = model.Email,
-                FirstName = model.FirstName,
-                LastName = model.LastName,
-            };
-            var result = await _userManager.CreateAsync(user, model.Password);
 
-            if (result.Succeeded)
+            if (!string.IsNullOrEmpty(model.RoleName) && await _roleManager.RoleExistsAsync(model.RoleName))
             {
-                // Assign role if provided and it exists
-                if (!string.IsNullOrEmpty(model.RoleName))
+                var user = new User
                 {
-                    if (await _roleManager.RoleExistsAsync(model.RoleName))
-                    {
-                        await _userManager.AddToRoleAsync(user, model.RoleName);
-                    }
-                    else
-                    {
-                        return new UserResponse(false, "Role does not exist.");
-                    }
+                    UserName = string.Concat(model.FirstName,".",model.LastName),
+                    Email = model.Email,
+                    FirstName = model.FirstName,
+                    LastName = model.LastName,
+                    SupervisorId = !string.IsNullOrEmpty(model.SupervisorId) ? model.SupervisorId :null,
+                    TeamLeaderId = !string.IsNullOrEmpty(model.TeamLeaderId) ? model.TeamLeaderId : null,
+                };
+                var result = await _userManager.CreateAsync(user, model.Password);
+                
+                if (result.Succeeded)
+                {
+                    await _userManager.AddToRoleAsync(user, model.RoleName);
+                    return new UserResponse(true, "User created successfully!");
                 }
-                return new UserResponse(true, "User created successfully!");
+                return new UserResponse(false, "User creation failed. " + string.Join(" ", result.Errors.Select(e => e.Description)));
+            }
+            else
+            {
+                return new UserResponse(false, "Role does not exist.");
             }
 
-            return new UserResponse(false, "User creation failed.");
+
         }
 
         // Login method to authenticate a user and generate JWT token

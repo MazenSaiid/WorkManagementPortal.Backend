@@ -2,11 +2,11 @@
 
 namespace WorkManagementPortal.Backend.Infrastructure.Models
 {
-    public class Pause
+    public class PauseTrackingLog
     {
         public int Id { get; set; }
         public int WorkLogId { get; set; }  // Foreign Key to TimeLog
-        public WorkLog WorkLog { get; set; }
+        public WorkTrackingLog WorkTrackingLog { get; set; }
 
         public PauseType PauseType { get; set; } 
         public DateTime PauseStart { get; set; }
