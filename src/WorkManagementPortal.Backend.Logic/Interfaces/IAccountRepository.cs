@@ -16,6 +16,8 @@ namespace WorkManagementPortal.Backend.Logic.Interfaces
         Task<UserResponse> LoginAsync(LoginModel model);
         Task<UserResponse> GetCurrentUserAsync(string userId, string token);
         Task<IList<string>> GetRolesAsync(User user);
+        Task<UserResponse> RequestPasswordResetAsync(string email);
+        Task<UserResponse> ResetPasswordAsync(string email, string token, string newPassword);
     }
 
 }

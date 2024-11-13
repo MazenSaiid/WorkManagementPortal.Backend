@@ -44,7 +44,12 @@ namespace WorkManagementPortal.Backend.Logic.Services
                 return new UserResponse(false, "Email is already in use.");
             }
 
-            var user = new User { UserName = model.UserName, Email = model.Email };
+            var user = new User {
+                UserName = string.Concat(model.FirstName,model.LastName), 
+                Email = model.Email,
+                FirstName = model.FirstName,
+                LastName = model.LastName,
+            };
             var result = await _userManager.CreateAsync(user, model.Password);
 
             if (result.Succeeded)
@@ -124,6 +129,52 @@ namespace WorkManagementPortal.Backend.Logic.Services
         {
             return await _userManager.GetRolesAsync(user);
         }
+
+        public async Task<UserResponse> RequestPasswordResetAsync(string email)
+        {
+            var user = await _userManager.FindByEmailAsync(email);
+            if (user == null)
+            {
+                return new UserResponse(false, "No user found with that email address.");
+            }
+
+            // Generate a password reset token
+            var token = await _userManager.GeneratePasswordResetTokenAsync(user);
+
+            // Send the token via email to the user (you need to implement email sending)
+            var resetLink = $"{_configuration["App:PasswordResetUrl"]}?token={token}&email={email}";
+            // Ideally, you would send an email to the user with the resetLink here.
+            await SendPasswordResetEmailAsync(email, resetLink);
+
+            return new UserResponse(true, "Password reset link has been sent to your email.");
+        }
+
+        private async Task SendPasswordResetEmailAsync(string email, string resetLink)
+        {
+            // Implement email sending logic here (this could be via SMTP, SendGrid, etc.)
+            // For example, use an email service to send the resetLink to the user's email.
+        }
+
+        public async Task<UserResponse> ResetPasswordAsync(string email, string token, string newPassword)
+        {
+            var user = await _userManager.FindByEmailAsync(email);
+            if (user == null)
+            {
+                return new UserResponse(false, "No user found with that email address.");
+            }
+
+            // Use the token to reset the user's password
+            var result = await _userManager.ResetPasswordAsync(user, token, newPassword);
+
+            if (result.Succeeded)
+            {
+                return new UserResponse(true, "Your password has been reset successfully.");
+            }
+
+            // If the result contains errors, return them as a string
+            return new UserResponse(false, string.Join(", ", result.Errors.Select(e => e.Description)));
+        }
+
     }
 
 }
