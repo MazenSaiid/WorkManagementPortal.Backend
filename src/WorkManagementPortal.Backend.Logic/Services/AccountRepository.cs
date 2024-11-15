@@ -36,12 +36,12 @@ namespace WorkManagementPortal.Backend.Logic.Services
         }
 
         // Register a new user
-        public async Task<UserResponse> RegisterAsync(RegisterModel model)
+        public async Task<ValidationResponse> RegisterAsync(RegisterModel model)
         {
             var emailExists = await CheckExistingEmailAsync(model.Email);
             if (emailExists)
             {
-                return new UserResponse(false, "Email is already in use.");
+                return new ValidationResponse(false, "Email is already in use.");
             }
 
 
@@ -61,20 +61,20 @@ namespace WorkManagementPortal.Backend.Logic.Services
                 if (result.Succeeded)
                 {
                     await _userManager.AddToRoleAsync(user, model.RoleName);
-                    return new UserResponse(true, "User created successfully!");
+                    return new ValidationResponse(true, "User created successfully!");
                 }
-                return new UserResponse(false, "User creation failed. " + string.Join(" ", result.Errors.Select(e => e.Description)));
+                return new ValidationResponse(false, "User creation failed. " + string.Join(" ", result.Errors.Select(e => e.Description)));
             }
             else
             {
-                return new UserResponse(false, "Role does not exist.");
+                return new ValidationResponse(false, "Role does not exist.");
             }
 
 
         }
 
         // Login method to authenticate a user and generate JWT token
-        public async Task<UserResponse> LoginAsync(LoginModel model)
+        public async Task<ValidationResponse> LoginAsync(LoginModel model)
         {
             var user = await _userManager.FindByEmailAsync(model.Email);
             if (user != null && await _userManager.CheckPasswordAsync(user, model.Password))
@@ -100,20 +100,20 @@ namespace WorkManagementPortal.Backend.Logic.Services
                     signingCredentials: new SigningCredentials(authSigningKey, SecurityAlgorithms.HmacSha256)
                 );
 
-                return new UserResponse(true, "Login successful", new JwtSecurityTokenHandler().WriteToken(token));
+                return new ValidationResponse(true, "Login successful", new JwtSecurityTokenHandler().WriteToken(token));
             }
 
-            return new UserResponse(false, "Invalid login attempt.");
+            return new ValidationResponse(false, "Invalid login attempt.");
         }
 
         // Get current user by user ID and parse token
-        public async Task<UserResponse> GetCurrentUserAsync(string userId, string token)
+        public async Task<ValidationResponse> GetCurrentUserAsync(string userId, string token)
         {
             // Retrieve user by user ID
             var user = await _userManager.FindByIdAsync(userId);
             if (user == null)
             {
-                return new UserResponse(false, "User not found.");
+                return new ValidationResponse(false, "User not found.");
             }
 
             // Parse the token to check expiration
@@ -122,7 +122,7 @@ namespace WorkManagementPortal.Backend.Logic.Services
             var expiration = jwtToken.ValidTo;
 
             // Return user details along with roles and the token
-            return new UserResponse(true, "User retrieved successfully", token);
+            return new ValidationResponse(true, "User retrieved successfully", token);
         }
 
         // Get user roles
@@ -131,12 +131,12 @@ namespace WorkManagementPortal.Backend.Logic.Services
             return await _userManager.GetRolesAsync(user);
         }
 
-        public async Task<UserResponse> RequestPasswordResetAsync(string email)
+        public async Task<ValidationResponse> RequestPasswordResetAsync(string email)
         {
             var user = await _userManager.FindByEmailAsync(email);
             if (user == null)
             {
-                return new UserResponse(false, "No user found with that email address.");
+                return new ValidationResponse(false, "No user found with that email address.");
             }
 
             // Generate a password reset token
@@ -147,7 +147,7 @@ namespace WorkManagementPortal.Backend.Logic.Services
             // Ideally, you would send an email to the user with the resetLink here.
             await SendPasswordResetEmailAsync(email, resetLink);
 
-            return new UserResponse(true, "Password reset link has been sent to your email.");
+            return new ValidationResponse(true, "Password reset link has been sent to your email.");
         }
 
         private async Task SendPasswordResetEmailAsync(string email, string resetLink)
@@ -156,12 +156,12 @@ namespace WorkManagementPortal.Backend.Logic.Services
             // For example, use an email service to send the resetLink to the user's email.
         }
 
-        public async Task<UserResponse> ResetPasswordAsync(string email, string token, string newPassword)
+        public async Task<ValidationResponse> ResetPasswordAsync(string email, string token, string newPassword)
         {
             var user = await _userManager.FindByEmailAsync(email);
             if (user == null)
             {
-                return new UserResponse(false, "No user found with that email address.");
+                return new ValidationResponse(false, "No user found with that email address.");
             }
 
             // Use the token to reset the user's password
@@ -169,11 +169,11 @@ namespace WorkManagementPortal.Backend.Logic.Services
 
             if (result.Succeeded)
             {
-                return new UserResponse(true, "Your password has been reset successfully.");
+                return new ValidationResponse(true, "Your password has been reset successfully.");
             }
 
             // If the result contains errors, return them as a string
-            return new UserResponse(false, string.Join(", ", result.Errors.Select(e => e.Description)));
+            return new ValidationResponse(false, string.Join(", ", result.Errors.Select(e => e.Description)));
         }
 
     }

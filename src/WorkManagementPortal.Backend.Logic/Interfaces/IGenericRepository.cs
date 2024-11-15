@@ -9,13 +9,13 @@ using WorkManagementPortal.Backend.Infrastructure.Models;
 namespace WorkManagementPortal.Backend.Logic.Interfaces
 {
     
-        public interface IGenericRepository<T> where T : class
+        public interface IGenericRepository<T, TKey> where T : class
         {
             Task AddAsync(T entity);
-            Task UpdateAsync(int id, T entity);
-            Task DeleteAsync(int id);
+            Task UpdateAsync( TKey id, T entity);
+            Task DeleteAsync(TKey id);
             Task<IEnumerable<T>> GetAllAsync();
-            Task<T> GetByIdAsync(int id);
+            Task<T> GetByIdAsync(TKey id);
         }
     
 }

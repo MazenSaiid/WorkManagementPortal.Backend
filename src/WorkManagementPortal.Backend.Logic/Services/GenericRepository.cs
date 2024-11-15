@@ -12,7 +12,7 @@ using WorkManagementPortal.Backend.Logic.Interfaces;
 namespace WorkManagementPortal.Backend.Logic.Services
 {
 
-    public class GenericRepository<T> : IGenericRepository<T> where T : class
+    public class GenericRepository<T,TKey> : IGenericRepository<T,TKey> where T : class
     {
         private readonly ApplicationDbContext _context;
 
@@ -27,7 +27,7 @@ namespace WorkManagementPortal.Backend.Logic.Services
             await _context.SaveChangesAsync();
         }
 
-        public async Task DeleteAsync(int id)
+        public async Task DeleteAsync(TKey id)
         {
             var entityToDelete = await _context.Set<T>().FindAsync(id);
             if (entityToDelete is not null)
@@ -41,11 +41,10 @@ namespace WorkManagementPortal.Backend.Logic.Services
            await _context.Set<T>().AsNoTracking().ToListAsync();
 
 
-        public async Task<T> GetByIdAsync(int id) =>
-            await _context.Set<T>().FindAsync(id);
+        public async Task<T> GetByIdAsync(TKey id)
+        => await _context.Set<T>().FindAsync(id);
 
-
-        public async Task UpdateAsync(int id, T entity)
+        public async Task UpdateAsync(TKey id, T entity)
         {
             var entityToUpdate = await _context.Set<T>().FindAsync(id);
             if (entityToUpdate is not null)
@@ -55,6 +54,7 @@ namespace WorkManagementPortal.Backend.Logic.Services
 
             }
         }
+
     }
 
 }

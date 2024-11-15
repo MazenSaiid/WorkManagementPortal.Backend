@@ -6,13 +6,13 @@ using System.Threading.Tasks;
 
 namespace WorkManagementPortal.Backend.Logic.Responses
 {
-    public class UserResponse
+    public class ValidationResponse
     {
         public bool Success { get; set; }
         public string Message { get; set; }
         public string Token { get; set; }
 
-        public UserResponse(bool success, string message, string token = null)
+        public ValidationResponse(bool success, string message, string token = null)
         {
             Success = success;
             Message = message;

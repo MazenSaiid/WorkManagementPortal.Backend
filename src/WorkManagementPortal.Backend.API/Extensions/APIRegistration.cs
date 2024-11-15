@@ -12,8 +12,9 @@ namespace WorkManagementPortal.Backend.API.Extensions
             //Configure Auto Mapper
             services.AddAutoMapper(Assembly.GetExecutingAssembly());
             //
-            services.AddScoped(typeof(IGenericRepository<>), typeof(GenericRepository<>));
+            services.AddScoped(typeof(IGenericRepository<,>), typeof(GenericRepository<,>));
             services.AddScoped<IAccountRepository, AccountRepository>();
+            services.AddScoped<IUserRepository, UserRepository>();
             services.AddScoped<ISeedData, SeedData>();
 
             //Configure and Enable CORS

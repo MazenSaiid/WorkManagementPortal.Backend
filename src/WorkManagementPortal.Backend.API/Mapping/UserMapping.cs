@@ -1,6 +1,7 @@
 ﻿using AutoMapper;
 using System.Net;
 using WorkManagementPortal.Backend.API.Dtos.User;
+using WorkManagementPortal.Backend.Infrastructure.Dtos.User;
 using WorkManagementPortal.Backend.Infrastructure.Models;
 
 namespace WorkManagementPortal.Backend.API.Mapping
@@ -10,6 +11,7 @@ namespace WorkManagementPortal.Backend.API.Mapping
         public UserMapping()
         {
             CreateMap<UserDto, User>().ReverseMap();
+            CreateMap<UpdateUserDto, User>().ReverseMap();
         }
     }
 }

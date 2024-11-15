@@ -10,6 +10,7 @@ using WorkManagementPortal.Backend.API.Dtos.Account;
 using WorkManagementPortal.Backend.API.Dtos.User;
 using WorkManagementPortal.Backend.Infrastructure.Models;
 using WorkManagementPortal.Backend.Logic.Interfaces;
+using WorkManagementPortal.Backend.Logic.Responses;
 namespace WorkManagementPortal.Backend.API.Controllers
 {
     [Route("api/[controller]")]
@@ -61,11 +62,11 @@ namespace WorkManagementPortal.Backend.API.Controllers
         {
             var userId = User.FindFirstValue(ClaimTypes.NameIdentifier); // Retrieve user ID from JWT claims
             if (string.IsNullOrEmpty(userId))
-                return Unauthorized(new { message = "User not authenticated." });
+                return Unauthorized(new ValidationResponse(false,"User not authenticated."));
 
             var token = Request.Headers["Authorization"].ToString().Replace("Bearer ", "");
             if (string.IsNullOrEmpty(token))
-                return Unauthorized(new { message = "No token provided." });
+                return Unauthorized(new ValidationResponse(false, "No token provided."));
 
             var result = await _accountRepository.GetCurrentUserAsync(userId, token);
 

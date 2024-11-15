@@ -16,11 +16,11 @@ namespace WorkManagementPortal.Backend.Infrastructure.Models
         // Foreign Key for the supervisor (Self-Referencing)
         public string? SupervisorId { get; set; }
         public User Supervisor { get; set; }  // Navigation property to Supervisor
-        public bool IsSupervisor { get; set; }
+        
         // Foreign Key for the team leader (Self-Referencing)
         public string? TeamLeaderId { get; set; }
         public User TeamLeader { get; set; }  // Navigation property to Team Leader
-        public bool IsTeamLeader { get; set; }
+
         // Collection of workers supervised by this supervisor
         public ICollection<User> Workers { get; set; } = new HashSet<User>();
 

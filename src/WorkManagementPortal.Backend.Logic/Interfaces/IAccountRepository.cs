@@ -12,12 +12,12 @@ namespace WorkManagementPortal.Backend.Logic.Interfaces
     public interface IAccountRepository
     {
         Task<bool> CheckExistingEmailAsync(string email);
-        Task<UserResponse> RegisterAsync(RegisterModel model);
-        Task<UserResponse> LoginAsync(LoginModel model);
-        Task<UserResponse> GetCurrentUserAsync(string userId, string token);
+        Task<ValidationResponse> RegisterAsync(RegisterModel model);
+        Task<ValidationResponse> LoginAsync(LoginModel model);
+        Task<ValidationResponse> GetCurrentUserAsync(string userId, string token);
         Task<IList<string>> GetRolesAsync(User user);
-        Task<UserResponse> RequestPasswordResetAsync(string email);
-        Task<UserResponse> ResetPasswordAsync(string email, string token, string newPassword);
+        Task<ValidationResponse> RequestPasswordResetAsync(string email);
+        Task<ValidationResponse> ResetPasswordAsync(string email, string token, string newPassword);
     }
 
 }
