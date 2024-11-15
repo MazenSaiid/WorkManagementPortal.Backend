@@ -109,6 +109,7 @@ namespace WorkManagementPortal.Backend.Logic.Services
                 foreach (var supervisor in supervisorsWithTeamLeadersDTOs)
                 {
                     supervisor.RoleName = "Supervisor";
+                    supervisor.TeamLeader.RoleName = "TeamLead";
                 }
                 return new UserValidationResponse(true, "Supervisors and their team leaders fetched successfully", supervisorsWithTeamLeadersDTOs);
             }
@@ -130,6 +131,7 @@ namespace WorkManagementPortal.Backend.Logic.Services
                 foreach (var employee in employeesWithSupervisorsDTOs)
                 {
                     employee.RoleName = "Employee";
+                    employee.Supervisor.RoleName = "Supervisor";
                 }
                 return new UserValidationResponse(true, "Employees and their supervisors fetched successfully", employeesWithSupervisorsDTOs);
             }
