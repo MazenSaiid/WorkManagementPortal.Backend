@@ -145,7 +145,7 @@ namespace WorkManagementPortal.Backend.Logic.Services
 
             // Send the token via email to the user (you need to implement email sending)
             var resetLink = $"{_configuration["App:PasswordResetUrl"]}?token={token}&email={email}";
-            // Ideally, you would send an email to the user with the resetLink here.
+            // send an email to the user with the resetLink here.
             await SendPasswordResetEmailAsync(email, resetLink);
 
             return new ValidationResponse(true, "Password reset link has been sent to your email.");
