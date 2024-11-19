@@ -15,5 +15,6 @@ namespace WorkManagementPortal.Backend.Logic.Interfaces
         Task<UserValidationResponse> GetAllEmployeesAsync();
         Task<UserValidationResponse> GetAllSupervisorsAndTheirTeamLeadersAsync();
         Task<UserValidationResponse> GetAllEmployeesAndTheirSupervisorsAsync();
+        Task<UserValidationResponse> GetAllEmployeesAndHeadsAsync();
     }
 }

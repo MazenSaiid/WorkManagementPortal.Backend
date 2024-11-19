@@ -23,6 +23,9 @@ namespace WorkManagementPortal.Backend.Infrastructure.Configurations
                 .WithMany(u => u.Supervisors)  // One team leader to many supervisors
                 .HasForeignKey(u => u.TeamLeaderId)
                 .OnDelete(DeleteBehavior.Restrict);
+
+            builder.HasOne(u => u.WorkShift)
+                .WithMany().HasForeignKey(u => u.WorkShiftId);
         }
     }
 }

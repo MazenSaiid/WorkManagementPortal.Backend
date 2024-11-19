@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using WorkManagementPortal.Backend.Infrastructure.Context;
 
@@ -11,9 +12,11 @@ using WorkManagementPortal.Backend.Infrastructure.Context;
 namespace WorkManagementPortal.Backend.Infrastructure.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20241119144437_AddWorkShiftTotalsAndUserIdToPauseTrackingLog")]
+    partial class AddWorkShiftTotalsAndUserIdToPauseTrackingLog
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -194,9 +197,6 @@ namespace WorkManagementPortal.Backend.Infrastructure.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
-                    b.Property<double>("PauseDuration")
-                        .HasColumnType("float");
-
                     b.Property<DateTime>("PauseEnd")
                         .HasColumnType("datetime2");
 
@@ -213,12 +213,10 @@ namespace WorkManagementPortal.Backend.Infrastructure.Migrations
                     b.Property<int>("WorkLogId")
                         .HasColumnType("int");
 
-                    b.Property<int?>("WorkTrackingLogId")
+                    b.Property<int>("WorkTrackingLogId")
                         .HasColumnType("int");
 
                     b.HasKey("Id");
-
-                    b.HasIndex("WorkLogId");
 
                     b.HasIndex("WorkTrackingLogId");
 
@@ -291,9 +289,6 @@ namespace WorkManagementPortal.Backend.Infrastructure.Migrations
                         .HasMaxLength(256)
                         .HasColumnType("nvarchar(256)");
 
-                    b.Property<int?>("WorkShiftId")
-                        .HasColumnType("int");
-
                     b.HasKey("Id");
 
                     b.HasIndex("NormalizedEmail")
@@ -307,8 +302,6 @@ namespace WorkManagementPortal.Backend.Infrastructure.Migrations
                     b.HasIndex("SupervisorId");
 
                     b.HasIndex("TeamLeaderId");
-
-                    b.HasIndex("WorkShiftId");
 
                     b.ToTable("AspNetUsers", (string)null);
                 });
@@ -334,7 +327,19 @@ namespace WorkManagementPortal.Backend.Infrastructure.Migrations
                     b.Property<DateTime>("StartTime")
                         .HasColumnType("datetime2");
 
+                    b.Property<double>("TotalPausedHours")
+                        .HasColumnType("float");
+
+                    b.Property<double>("TotalWorkedHours")
+                        .HasColumnType("float");
+
+                    b.Property<string>("UserId")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(450)");
+
                     b.HasKey("Id");
+
+                    b.HasIndex("UserId");
 
                     b.ToTable("WorkShifts");
                 });
@@ -347,23 +352,11 @@ namespace WorkManagementPortal.Backend.Infrastructure.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
-                    b.Property<double>("ActualWorkDuration")
-                        .HasColumnType("float");
-
                     b.Property<DateTime>("ClockIn")
                         .HasColumnType("datetime2");
 
                     b.Property<DateTime>("ClockOut")
                         .HasColumnType("datetime2");
-
-                    b.Property<bool>("IsFinished")
-                        .HasColumnType("bit");
-
-                    b.Property<bool>("IsPaused")
-                        .HasColumnType("bit");
-
-                    b.Property<bool>("IsWorking")
-                        .HasColumnType("bit");
 
                     b.Property<string>("UserId")
                         .IsRequired()
@@ -441,14 +434,10 @@ namespace WorkManagementPortal.Backend.Infrastructure.Migrations
             modelBuilder.Entity("WorkManagementPortal.Backend.Infrastructure.Models.PauseTrackingLog", b =>
                 {
                     b.HasOne("WorkManagementPortal.Backend.Infrastructure.Models.WorkTrackingLog", "WorkTrackingLog")
-                        .WithMany()
-                        .HasForeignKey("WorkLogId")
+                        .WithMany("PauseTrackingLogs")
+                        .HasForeignKey("WorkTrackingLogId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
-
-                    b.HasOne("WorkManagementPortal.Backend.Infrastructure.Models.WorkTrackingLog", null)
-                        .WithMany("PauseTrackingLogs")
-                        .HasForeignKey("WorkTrackingLogId");
 
                     b.Navigation("WorkTrackingLog");
                 });
@@ -465,15 +454,20 @@ namespace WorkManagementPortal.Backend.Infrastructure.Migrations
                         .HasForeignKey("TeamLeaderId")
                         .OnDelete(DeleteBehavior.Restrict);
 
-                    b.HasOne("WorkManagementPortal.Backend.Infrastructure.Models.WorkShift", "WorkShift")
-                        .WithMany()
-                        .HasForeignKey("WorkShiftId");
-
                     b.Navigation("Supervisor");
 
                     b.Navigation("TeamLeader");
+                });
 
-                    b.Navigation("WorkShift");
+            modelBuilder.Entity("WorkManagementPortal.Backend.Infrastructure.Models.WorkShift", b =>
+                {
+                    b.HasOne("WorkManagementPortal.Backend.Infrastructure.Models.User", "User")
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("User");
                 });
 
             modelBuilder.Entity("WorkManagementPortal.Backend.Infrastructure.Models.WorkTrackingLog", b =>

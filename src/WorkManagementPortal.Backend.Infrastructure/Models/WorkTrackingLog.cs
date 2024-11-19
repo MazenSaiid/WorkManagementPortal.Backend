@@ -15,26 +15,11 @@ namespace WorkManagementPortal.Backend.Infrastructure.Models
         public DateTime ClockIn { get; set; }
         public DateTime ClockOut { get; set; }
 
+        public bool IsWorking { get; set; }
+        public bool IsPaused { get; set; }
+        public bool IsFinished { get; set; }
         public ICollection<PauseTrackingLog> PauseTrackingLogs { get; set; }  // Collection of pauses
-
-        public double TotalWorkingHours
-        {
-            get
-            {
-                // Calculate total working hours, subtracting all pauses
-                var totalPauseTime = PauseTrackingLogs?.Sum(p => p.DurationInMinutes) ?? 0;
-                return (ClockOut - ClockIn).TotalHours - totalPauseTime / 60;
-            }
-        }
-
-        public double TotalPausingHours
-        {
-            get
-            {
-                // Calculate total pause hours by summing up durations of all pauses
-                return (PauseTrackingLogs?.Sum(p => p.DurationInMinutes) ?? 0) / 60;
-            }
-        }
+        public double ActualWorkDuration { get; set; }
     }
 
 }

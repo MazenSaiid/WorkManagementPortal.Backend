@@ -138,6 +138,26 @@ namespace WorkManagementPortal.Backend.Logic.Services
                 return new UserValidationResponse(false, $"Error fetching employees and their supervisors: {ex.Message}");
             }
         }
+        public async Task<UserValidationResponse> GetAllEmployeesAndHeadsAsync()
+        {
+            try
+            {
+                var employeesWithSupervisors = await _context.Users
+                    .Where(u => u.SupervisorId != null && u.TeamLeaderId != null)
+                    .Include(u => u.Supervisor).Include(u=>u.TeamLeader)
+                    .ToListAsync();
+                var employeesDTOs = _mapper.Map<IEnumerable<UserDto>>(employeesWithSupervisors);
+                foreach (var employee in employeesDTOs)
+                {
+                    employee.RoleName = "Employee";
+                }
+                return new UserValidationResponse(true, "Employees fetched successfully", employeesDTOs);
+            }
+            catch (Exception ex)
+            {
+                return new UserValidationResponse(false, $"Error fetching employees: {ex.Message}");
+            }
+        }
 
     }
 

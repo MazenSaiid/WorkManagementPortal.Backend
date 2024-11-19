@@ -9,13 +9,13 @@ using WorkManagementPortal.Backend.Infrastructure.Models;
 
 namespace WorkManagementPortal.Backend.Infrastructure.Configurations
 {
-    public class WorkLogConfiguration : IEntityTypeConfiguration<WorkTrackingLog>
+    public class PauseTrackingLogConfiguration : IEntityTypeConfiguration<PauseTrackingLog>
     {
-        public void Configure(EntityTypeBuilder<WorkTrackingLog> builder)
+        public void Configure(EntityTypeBuilder<PauseTrackingLog> builder)
         {
-            builder.HasOne(t => t.User)
+            builder.HasOne(t => t.WorkTrackingLog)
             .WithMany()
-            .HasForeignKey(t => t.UserId);
+            .HasForeignKey(t => t.WorkLogId);
         }
     }
 }

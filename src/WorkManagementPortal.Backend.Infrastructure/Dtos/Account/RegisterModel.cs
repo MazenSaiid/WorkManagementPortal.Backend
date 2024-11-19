@@ -17,5 +17,6 @@ namespace WorkManagementPortal.Backend.API.Dtos.Account
         public string RoleName { get; set; } // Optional role name for assignment
         public string? SupervisorId { get; set; }
         public string? TeamLeaderId { get; set; }
+        public int? WorkShiftId { get; set; }
     }
 }

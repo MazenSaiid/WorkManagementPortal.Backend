@@ -8,7 +8,7 @@ namespace WorkManagementPortal.Backend.Infrastructure.Enums
 {
     public enum PauseType
     {
-        Meeting,
-        Break
+        Meeting = 1,
+        Break,
     }
 }

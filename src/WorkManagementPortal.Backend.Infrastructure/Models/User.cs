@@ -26,6 +26,8 @@ namespace WorkManagementPortal.Backend.Infrastructure.Models
 
         // Collection of supervisors managed by this team leader
         public ICollection<User> Supervisors { get; set; } = new HashSet<User>();
+        public WorkShift WorkShift { get; set; }
+        public int? WorkShiftId { get; set; }
     }
 
 }
