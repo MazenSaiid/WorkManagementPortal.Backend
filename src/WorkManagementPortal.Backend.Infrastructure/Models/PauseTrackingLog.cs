@@ -5,7 +5,7 @@ namespace WorkManagementPortal.Backend.Infrastructure.Models
     public class PauseTrackingLog
     {
         public int Id { get; set; }
-        public int WorkLogId { get; set; }  // Foreign Key to WorkTrackingLog
+        public int WorkTrackingLogId { get; set; }  // Foreign Key to WorkTrackingLog
         public WorkTrackingLog WorkTrackingLog { get; set; }
 
         public string UserId { get; set; }  // User ID for easier querying of pauses

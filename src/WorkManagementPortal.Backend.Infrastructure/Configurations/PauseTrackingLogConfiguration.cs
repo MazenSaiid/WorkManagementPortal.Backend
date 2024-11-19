@@ -15,7 +15,7 @@ namespace WorkManagementPortal.Backend.Infrastructure.Configurations
         {
             builder.HasOne(t => t.WorkTrackingLog)
             .WithMany()
-            .HasForeignKey(t => t.WorkLogId);
+            .HasForeignKey(t => t.WorkTrackingLogId);
         }
     }
 }

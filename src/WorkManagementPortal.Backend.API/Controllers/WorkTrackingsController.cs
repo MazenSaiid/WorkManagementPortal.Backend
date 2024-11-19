@@ -74,7 +74,7 @@ namespace WorkManagementPortal.Backend.API.Controllers
             var totalWorkedHours = (workLog.ClockOut - workLog.ClockIn).TotalHours;
 
             // Get pauses for the work log
-            var pauses = _context.PauseTrackingLogs.Where(p => p.WorkLogId == workLog.Id).ToList();
+            var pauses = _context.PauseTrackingLogs.Where(p => p.WorkTrackingLogId == workLog.Id).ToList();
             var totalPausedHours = pauses.Sum(p => p.PauseDuration) / 60;
             workLog.ActualWorkDuration = totalWorkedHours - totalPausedHours;
 
@@ -102,7 +102,7 @@ namespace WorkManagementPortal.Backend.API.Controllers
             var pausedLog = new PauseTrackingLog
             {
                 UserId = workLog.UserId,
-                WorkLogId = workLogId,
+                WorkTrackingLogId = workLogId,
                 PauseStart = DateTime.UtcNow
             };
             // Handle Pause Logic
