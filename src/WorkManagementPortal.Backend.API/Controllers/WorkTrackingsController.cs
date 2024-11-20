@@ -155,7 +155,7 @@ namespace WorkManagementPortal.Backend.API.Controllers
         }
 
         // Get Work Log by ID (for validation, debugging, etc.)
-        [HttpGet("worklog/{workLogId}")]
+        [HttpGet("WorkLog/{workLogId}")]
         public IActionResult GetWorkLogById([FromRoute] int workLogId)
         {
             if (workLogId <= 0)
