@@ -12,8 +12,9 @@ namespace WorkManagementPortal.Backend.Infrastructure.Models
         public string UserId { get; set; }  // Foreign Key to User
         public User User { get; set; }
 
-        public DateTime ClockIn { get; set; }
-        public DateTime ClockOut { get; set; }
+        public DateOnly WorkDate { get; set; }
+        public DateTime WorkTimeStart { get; set; }
+        public DateTime WorkTimeEnd { get; set; }
 
         public bool IsWorking { get; set; }
         public bool IsPaused { get; set; }

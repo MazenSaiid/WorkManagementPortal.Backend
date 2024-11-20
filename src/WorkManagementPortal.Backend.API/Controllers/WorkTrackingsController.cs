@@ -38,7 +38,8 @@ namespace WorkManagementPortal.Backend.API.Controllers
             var workLog = new WorkTrackingLog
             {
                 UserId = userId,
-                ClockIn = DateTime.Now,
+                WorkTimeStart = DateTime.Now,
+                WorkDate = DateOnly.FromDateTime(DateTime.Now),
                 IsWorking = true,
                 IsFinished =false,
                 IsPaused = false
@@ -65,13 +66,13 @@ namespace WorkManagementPortal.Backend.API.Controllers
                 return NotFound("Work log not found.");
             }
 
-            workLog.ClockOut = DateTime.UtcNow;
+            workLog.WorkTimeEnd = DateTime.Now;
             workLog.IsFinished = true;
             workLog.IsWorking = false;
             workLog.IsPaused = false;
 
             // Calculate total worked hours excluding pauses
-            var totalWorkedHours = (workLog.ClockOut - workLog.ClockIn).TotalHours;
+            var totalWorkedHours = (workLog.WorkTimeEnd - workLog.WorkTimeStart).TotalHours;
 
             // Get pauses for the work log
             var pauses = _context.PauseTrackingLogs.Where(p => p.WorkTrackingLogId == workLog.Id).ToList();
