@@ -2,7 +2,7 @@
 {
     public enum LeaveStatus
     {
-        Pending,
+        Pending=11,
         Approved,
         Rejected
     }

@@ -28,14 +28,15 @@ namespace WorkManagementPortal.Backend.API.Extensions
             });
             return services;
         }
-        public static async void RolesSeedingConfiguration(this IApplicationBuilder app)
+        public static async void SeedingConfiguration(this IApplicationBuilder app)
         {
-            // Run role seeding asynchronously before starting the application
+            // Run seeding asynchronously before starting the application
             using (var scope = app.ApplicationServices.CreateScope())
             {
                 var serviceProvider = scope.ServiceProvider;
                 var seedData = serviceProvider.GetRequiredService<ISeedData>();
-                await seedData.SeedRoles(serviceProvider);  // Seed roles before app starts
+                await seedData.SeedRoles(serviceProvider);
+                await seedData.SeedShifts(serviceProvider);
             }
         }
 

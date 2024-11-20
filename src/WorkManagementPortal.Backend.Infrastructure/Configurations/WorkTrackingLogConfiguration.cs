@@ -14,8 +14,13 @@ namespace WorkManagementPortal.Backend.Infrastructure.Configurations
         public void Configure(EntityTypeBuilder<WorkTrackingLog> builder)
         {
             builder.HasOne(t => t.User)
-            .WithMany()
-            .HasForeignKey(t => t.UserId);
+                .WithMany()
+                .HasForeignKey(t => t.UserId);
+
+            builder.HasMany(t => t.PauseTrackingLogs)  
+                .WithOne(p => p.WorkTrackingLog)        
+                .HasForeignKey(p => p.WorkTrackingLogId); 
         }
     }
+
 }

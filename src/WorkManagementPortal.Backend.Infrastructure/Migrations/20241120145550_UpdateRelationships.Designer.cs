@@ -12,8 +12,8 @@ using WorkManagementPortal.Backend.Infrastructure.Context;
 namespace WorkManagementPortal.Backend.Infrastructure.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    [Migration("20241119212618_RemoveUnusedCol")]
-    partial class RemoveUnusedCol
+    [Migration("20241120145550_UpdateRelationships")]
+    partial class UpdateRelationships
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -213,17 +213,15 @@ namespace WorkManagementPortal.Backend.Infrastructure.Migrations
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
-                    b.Property<int>("WorkTrackingLogId")
-                        .HasColumnType("int");
+                    b.Property<DateOnly>("WorkDate")
+                        .HasColumnType("date");
 
-                    b.Property<int?>("WorkTrackingLogId1")
+                    b.Property<int>("WorkTrackingLogId")
                         .HasColumnType("int");
 
                     b.HasKey("Id");
 
                     b.HasIndex("WorkTrackingLogId");
-
-                    b.HasIndex("WorkTrackingLogId1");
 
                     b.ToTable("PauseTrackingLogs");
                 });
@@ -324,8 +322,8 @@ namespace WorkManagementPortal.Backend.Infrastructure.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
-                    b.Property<DateTime>("EndTime")
-                        .HasColumnType("datetime2");
+                    b.Property<TimeOnly>("EndTime")
+                        .HasColumnType("time");
 
                     b.Property<string>("ShiftName")
                         .IsRequired()
@@ -334,8 +332,8 @@ namespace WorkManagementPortal.Backend.Infrastructure.Migrations
                     b.Property<int>("ShiftType")
                         .HasColumnType("int");
 
-                    b.Property<DateTime>("StartTime")
-                        .HasColumnType("datetime2");
+                    b.Property<TimeOnly>("StartTime")
+                        .HasColumnType("time");
 
                     b.HasKey("Id");
 
@@ -353,13 +351,7 @@ namespace WorkManagementPortal.Backend.Infrastructure.Migrations
                     b.Property<double>("ActualWorkDuration")
                         .HasColumnType("float");
 
-                    b.Property<DateTime>("ClockIn")
-                        .HasColumnType("datetime2");
-
-                    b.Property<DateTime>("ClockOut")
-                        .HasColumnType("datetime2");
-
-                    b.Property<bool>("IsFinished")
+                    b.Property<bool>("HasFinished")
                         .HasColumnType("bit");
 
                     b.Property<bool>("IsPaused")
@@ -371,6 +363,15 @@ namespace WorkManagementPortal.Backend.Infrastructure.Migrations
                     b.Property<string>("UserId")
                         .IsRequired()
                         .HasColumnType("nvarchar(450)");
+
+                    b.Property<DateOnly>("WorkDate")
+                        .HasColumnType("date");
+
+                    b.Property<DateTime>("WorkTimeEnd")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime>("WorkTimeStart")
+                        .HasColumnType("datetime2");
 
                     b.HasKey("Id");
 
@@ -444,14 +445,10 @@ namespace WorkManagementPortal.Backend.Infrastructure.Migrations
             modelBuilder.Entity("WorkManagementPortal.Backend.Infrastructure.Models.PauseTrackingLog", b =>
                 {
                     b.HasOne("WorkManagementPortal.Backend.Infrastructure.Models.WorkTrackingLog", "WorkTrackingLog")
-                        .WithMany()
+                        .WithMany("PauseTrackingLogs")
                         .HasForeignKey("WorkTrackingLogId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
-
-                    b.HasOne("WorkManagementPortal.Backend.Infrastructure.Models.WorkTrackingLog", null)
-                        .WithMany("PauseTrackingLogs")
-                        .HasForeignKey("WorkTrackingLogId1");
 
                     b.Navigation("WorkTrackingLog");
                 });

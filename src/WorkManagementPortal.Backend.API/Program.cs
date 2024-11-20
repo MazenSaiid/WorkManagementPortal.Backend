@@ -35,7 +35,7 @@ namespace WorkManagementPortal.Backend.API
             app.UseCors("DefaultPolicy");
 
             app.MapControllers();
-            APIRegistration.RolesSeedingConfiguration(app);
+            APIRegistration.SeedingConfiguration(app);
             app.Run();
         }
     }

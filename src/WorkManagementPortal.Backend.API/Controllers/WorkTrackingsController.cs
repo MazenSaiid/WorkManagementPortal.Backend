@@ -38,10 +38,9 @@ namespace WorkManagementPortal.Backend.API.Controllers
             var workLog = new WorkTrackingLog
             {
                 UserId = userId,
-                WorkTimeStart = DateTime.Now,
+                WorkTimeStart = DateTime.UtcNow,
                 WorkDate = DateOnly.FromDateTime(DateTime.Now),
                 IsWorking = true,
-                IsFinished =false,
                 IsPaused = false
             };
 
@@ -66,10 +65,10 @@ namespace WorkManagementPortal.Backend.API.Controllers
                 return NotFound("Work log not found.");
             }
 
-            workLog.WorkTimeEnd = DateTime.Now;
-            workLog.IsFinished = true;
+            workLog.WorkTimeEnd = DateTime.UtcNow;
             workLog.IsWorking = false;
             workLog.IsPaused = false;
+            workLog.HasFinished = true;
 
             // Calculate total worked hours excluding pauses
             var totalWorkedHours = (workLog.WorkTimeEnd - workLog.WorkTimeStart).TotalHours;
@@ -88,7 +87,7 @@ namespace WorkManagementPortal.Backend.API.Controllers
         {
             if (workLogId <= 0)
             {
-                return BadRequest("Invalid work log ID.");
+                return BadRequest("Invalid work logID.");
             }
 
             var workLog = _context.WorkTrackingLogs.FirstOrDefault(w => w.Id == workLogId);
@@ -104,6 +103,7 @@ namespace WorkManagementPortal.Backend.API.Controllers
             {
                 UserId = workLog.UserId,
                 WorkTrackingLogId = workLogId,
+                WorkDate = DateOnly.FromDateTime(DateTime.Now),
                 PauseStart = DateTime.UtcNow
             };
             // Handle Pause Logic
@@ -115,6 +115,9 @@ namespace WorkManagementPortal.Backend.API.Controllers
                 case (int)PauseType.Break:
                     pausedLog.PauseType = PauseType.Meeting;
                     break;
+                case (int)PauseType.InCall:
+                    pausedLog.PauseType = PauseType.InCall;
+                    break;
                 default:
                     return BadRequest("Invalid pause type.");
             }
@@ -125,19 +128,19 @@ namespace WorkManagementPortal.Backend.API.Controllers
 
         // End Pause Method with Resuming Work Hours Logic
         [HttpPost("EndPause")]
-        public IActionResult EndPause([FromQuery] int pauseTrackingId)
+        public IActionResult EndPause([FromQuery] int workLogId)
         {
-            if (pauseTrackingId <= 0)
+            if (workLogId <= 0)
             {
-                return BadRequest("Invalid pause tracking ID.");
+                return BadRequest("Invalid work logID.");
             }
 
             var pauseTracking = _context.PauseTrackingLogs.
                 Include(p => p.WorkTrackingLog).
-                FirstOrDefault(p => p.Id == pauseTrackingId);
+                FirstOrDefault(p => p.WorkTrackingLogId == workLogId);
             if (pauseTracking == null)
             {
-                return NotFound("Pause tracking not found.");
+                return NotFound("Pause records not found.");
             }
             
             pauseTracking.PauseEnd = DateTime.UtcNow;

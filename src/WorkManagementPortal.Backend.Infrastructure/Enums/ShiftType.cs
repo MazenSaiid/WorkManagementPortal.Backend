@@ -8,7 +8,8 @@ namespace WorkManagementPortal.Backend.Infrastructure.Enums
 {
     public enum ShiftType
     {
-        Morning,
+        Morning=31,
+        MidDay,
         Night,
     }
 }

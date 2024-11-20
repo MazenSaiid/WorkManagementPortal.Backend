@@ -10,5 +10,7 @@ namespace WorkManagementPortal.Backend.Infrastructure.Enums
     {
         Meeting = 1,
         Break,
+        InCall,
+
     }
 }

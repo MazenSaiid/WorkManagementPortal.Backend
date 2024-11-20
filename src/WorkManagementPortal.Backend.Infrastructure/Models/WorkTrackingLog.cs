@@ -15,12 +15,14 @@ namespace WorkManagementPortal.Backend.Infrastructure.Models
         public DateOnly WorkDate { get; set; }
         public DateTime WorkTimeStart { get; set; }
         public DateTime WorkTimeEnd { get; set; }
-
+        public bool HasFinished { get; set; }
         public bool IsWorking { get; set; }
         public bool IsPaused { get; set; }
-        public bool IsFinished { get; set; }
-        public ICollection<PauseTrackingLog> PauseTrackingLogs { get; set; }  // Collection of pauses
+
+        // Navigation property to PauseTrackingLogs
+        public ICollection<PauseTrackingLog> PauseTrackingLogs { get; set; }
         public double ActualWorkDuration { get; set; }
     }
+
 
 }

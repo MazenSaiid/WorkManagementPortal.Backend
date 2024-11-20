@@ -1,11 +1,12 @@
-﻿using Microsoft.EntityFrameworkCore.Migrations;
+﻿using System;
+using Microsoft.EntityFrameworkCore.Migrations;
 
 #nullable disable
 
 namespace WorkManagementPortal.Backend.Infrastructure.Migrations
 {
     /// <inheritdoc />
-    public partial class RemoveUnusedCol : Migration
+    public partial class UpdateRelationships : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
@@ -26,6 +27,44 @@ namespace WorkManagementPortal.Backend.Infrastructure.Migrations
                 name: "WorkLogId",
                 table: "PauseTrackingLogs");
 
+            migrationBuilder.RenameColumn(
+                name: "IsFinished",
+                table: "WorkTrackingLogs",
+                newName: "HasFinished");
+
+            migrationBuilder.RenameColumn(
+                name: "ClockOut",
+                table: "WorkTrackingLogs",
+                newName: "WorkTimeStart");
+
+            migrationBuilder.RenameColumn(
+                name: "ClockIn",
+                table: "WorkTrackingLogs",
+                newName: "WorkTimeEnd");
+
+            migrationBuilder.AddColumn<DateOnly>(
+                name: "WorkDate",
+                table: "WorkTrackingLogs",
+                type: "date",
+                nullable: false,
+                defaultValue: new DateOnly(1, 1, 1));
+
+            migrationBuilder.AlterColumn<TimeOnly>(
+                name: "StartTime",
+                table: "WorkShifts",
+                type: "time",
+                nullable: false,
+                oldClrType: typeof(DateTime),
+                oldType: "datetime2");
+
+            migrationBuilder.AlterColumn<TimeOnly>(
+                name: "EndTime",
+                table: "WorkShifts",
+                type: "time",
+                nullable: false,
+                oldClrType: typeof(DateTime),
+                oldType: "datetime2");
+
             migrationBuilder.AlterColumn<int>(
                 name: "WorkTrackingLogId",
                 table: "PauseTrackingLogs",
@@ -36,16 +75,12 @@ namespace WorkManagementPortal.Backend.Infrastructure.Migrations
                 oldType: "int",
                 oldNullable: true);
 
-            migrationBuilder.AddColumn<int>(
-                name: "WorkTrackingLogId1",
+            migrationBuilder.AddColumn<DateOnly>(
+                name: "WorkDate",
                 table: "PauseTrackingLogs",
-                type: "int",
-                nullable: true);
-
-            migrationBuilder.CreateIndex(
-                name: "IX_PauseTrackingLogs_WorkTrackingLogId1",
-                table: "PauseTrackingLogs",
-                column: "WorkTrackingLogId1");
+                type: "date",
+                nullable: false,
+                defaultValue: new DateOnly(1, 1, 1));
 
             migrationBuilder.AddForeignKey(
                 name: "FK_PauseTrackingLogs_WorkTrackingLogs_WorkTrackingLogId",
@@ -54,13 +89,6 @@ namespace WorkManagementPortal.Backend.Infrastructure.Migrations
                 principalTable: "WorkTrackingLogs",
                 principalColumn: "Id",
                 onDelete: ReferentialAction.Cascade);
-
-            migrationBuilder.AddForeignKey(
-                name: "FK_PauseTrackingLogs_WorkTrackingLogs_WorkTrackingLogId1",
-                table: "PauseTrackingLogs",
-                column: "WorkTrackingLogId1",
-                principalTable: "WorkTrackingLogs",
-                principalColumn: "Id");
         }
 
         /// <inheritdoc />
@@ -70,17 +98,44 @@ namespace WorkManagementPortal.Backend.Infrastructure.Migrations
                 name: "FK_PauseTrackingLogs_WorkTrackingLogs_WorkTrackingLogId",
                 table: "PauseTrackingLogs");
 
-            migrationBuilder.DropForeignKey(
-                name: "FK_PauseTrackingLogs_WorkTrackingLogs_WorkTrackingLogId1",
-                table: "PauseTrackingLogs");
-
-            migrationBuilder.DropIndex(
-                name: "IX_PauseTrackingLogs_WorkTrackingLogId1",
-                table: "PauseTrackingLogs");
+            migrationBuilder.DropColumn(
+                name: "WorkDate",
+                table: "WorkTrackingLogs");
 
             migrationBuilder.DropColumn(
-                name: "WorkTrackingLogId1",
+                name: "WorkDate",
                 table: "PauseTrackingLogs");
+
+            migrationBuilder.RenameColumn(
+                name: "WorkTimeStart",
+                table: "WorkTrackingLogs",
+                newName: "ClockOut");
+
+            migrationBuilder.RenameColumn(
+                name: "WorkTimeEnd",
+                table: "WorkTrackingLogs",
+                newName: "ClockIn");
+
+            migrationBuilder.RenameColumn(
+                name: "HasFinished",
+                table: "WorkTrackingLogs",
+                newName: "IsFinished");
+
+            migrationBuilder.AlterColumn<DateTime>(
+                name: "StartTime",
+                table: "WorkShifts",
+                type: "datetime2",
+                nullable: false,
+                oldClrType: typeof(TimeOnly),
+                oldType: "time");
+
+            migrationBuilder.AlterColumn<DateTime>(
+                name: "EndTime",
+                table: "WorkShifts",
+                type: "datetime2",
+                nullable: false,
+                oldClrType: typeof(TimeOnly),
+                oldType: "time");
 
             migrationBuilder.AlterColumn<int>(
                 name: "WorkTrackingLogId",

@@ -16,6 +16,7 @@ namespace WorkManagementPortal.Backend.Infrastructure.Context
         {
 
         }
+
         public DbSet<WorkShift> WorkShifts { get; set; }
         public DbSet<WorkTrackingLog> WorkTrackingLogs { get; set; }
         public DbSet<LeaveEmployeeRequest> LeaveEmployeeRequests { get; set; }

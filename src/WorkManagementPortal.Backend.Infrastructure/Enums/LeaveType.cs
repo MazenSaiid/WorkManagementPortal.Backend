@@ -8,7 +8,7 @@ namespace WorkManagementPortal.Backend.Infrastructure.Enums
 {
     public enum LeaveType
     {
-        SickLeave,
+        SickLeave=21,
         Vacation
     }
 }
