@@ -3,6 +3,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Linq.Expressions;
+using System.Reflection;
 using System.Text;
 using System.Threading.Tasks;
 using WorkManagementPortal.Backend.Infrastructure.Context;
@@ -12,7 +13,7 @@ using WorkManagementPortal.Backend.Logic.Interfaces;
 namespace WorkManagementPortal.Backend.Logic.Services
 {
 
-    public class GenericRepository<T,TKey> : IGenericRepository<T,TKey> where T : class
+    public class GenericRepository<T, TKey> : IGenericRepository<T, TKey> where T : class
     {
         private readonly ApplicationDbContext _context;
 
@@ -44,15 +45,34 @@ namespace WorkManagementPortal.Backend.Logic.Services
         public async Task<T> GetByIdAsync(TKey id)
         => await _context.Set<T>().FindAsync(id);
 
-        public async Task UpdateAsync(TKey id, T entity)
+        public async Task UpdateAsync(T entityToUpdate, T updatedEntity)
         {
-            var entityToUpdate = await _context.Set<T>().FindAsync(id);
-            if (entityToUpdate is not null)
+            if (entityToUpdate == null || updatedEntity == null)
             {
-                _context.Set<T>().Update(entity);
-                await _context.SaveChangesAsync();
-
+                throw new ArgumentNullException("Both entities must be provided for the update.");
             }
+
+            var properties = typeof(T).GetProperties(BindingFlags.Public | BindingFlags.Instance);
+
+            foreach (var property in properties)
+            {
+                // Skip the primary key or any non-updatable fields (optional)
+                if (property.Name == "Id") // Adjust as needed for your primary key field
+                    continue;
+
+                var currentValue = property.GetValue(entityToUpdate);
+                var newValue = property.GetValue(updatedEntity);
+
+                // If the new value is not null and different from the current value, update it
+                if (newValue != null && !newValue.Equals(currentValue))
+                {
+                    property.SetValue(entityToUpdate, newValue);
+                }
+            }
+
+            // Mark the entity as updated and save the changes to the database
+            _context.Set<T>().Update(entityToUpdate);
+            await _context.SaveChangesAsync();
         }
 
     }

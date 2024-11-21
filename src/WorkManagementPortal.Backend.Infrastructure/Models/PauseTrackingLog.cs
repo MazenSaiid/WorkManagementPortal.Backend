@@ -13,7 +13,7 @@ namespace WorkManagementPortal.Backend.Infrastructure.Models
         public PauseType PauseType { get; set; }  // Type of pause (e.g., "Lunch", "Break")
         public DateTime PauseStart { get; set; }
         public DateTime PauseEnd { get; set; }
-        public double PauseDuration { get; set; }
+        public double PauseDurationInMinutes { get; set; }
     }
     
 }

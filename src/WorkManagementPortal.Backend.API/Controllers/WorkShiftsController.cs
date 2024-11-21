@@ -4,6 +4,9 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using WorkManagementPortal.Backend.API.Dtos.User;
 using WorkManagementPortal.Backend.Infrastructure.Dtos.User;
+using WorkManagementPortal.Backend.Infrastructure.Dtos.WorkLog;
+using WorkManagementPortal.Backend.Infrastructure.Dtos.WorkShift;
+using WorkManagementPortal.Backend.Infrastructure.Enums;
 using WorkManagementPortal.Backend.Infrastructure.Models;
 using WorkManagementPortal.Backend.Logic.Interfaces;
 using WorkManagementPortal.Backend.Logic.Responses;
@@ -37,8 +40,8 @@ namespace WorkManagementPortal.Backend.API.Controllers
                     return NotFound(new UserValidationResponse(false, "No work shifts found"));
                 }
 
-                
-                return Ok(new WorkShiftValidationRepsonse(true, "All work shifts fetched successfully", workShifts));
+                var result = _mapper.Map<IEnumerable<ListWorkShiftDto>>(workShifts);
+                return Ok(new WorkShiftValidationRepsonse(true, "All work shifts fetched successfully", result));
             }
             catch (Exception ex)
             {
@@ -58,7 +61,8 @@ namespace WorkManagementPortal.Backend.API.Controllers
                 {
                     return NotFound(new UserValidationResponse(false, "Work shift not found"));
                 }
-                return Ok(new WorkShiftValidationRepsonse(true, "Work shift fetched successfully", new List<WorkShift> { workShift }));
+                var result = _mapper.Map<ListWorkShiftDto>(workShift);
+                return Ok(new WorkShiftValidationRepsonse(true, "Work shift fetched successfully",new List<ListWorkShiftDto> { result }));
             }
             catch (Exception ex)
             {
@@ -69,7 +73,7 @@ namespace WorkManagementPortal.Backend.API.Controllers
         // Example of PUT (updating an existing work shift)
         [HttpPut]
         [Route("UpdateWorkShift/{id}")]
-        public async Task<IActionResult> UpdateWorkShift(int id, [FromBody] WorkShift updateWorkShiftDto)
+        public async Task<IActionResult> UpdateWorkShift(int id, [FromBody] WorkShiftDto updateWorkShiftDto)
         {
             try
             {
@@ -83,7 +87,13 @@ namespace WorkManagementPortal.Backend.API.Controllers
                 {
                     return NotFound();
                 }
-                await _workShiftRepository.UpdateAsync(id,existingWorkShift);
+                if (!Enum.IsDefined(typeof(ShiftType), updateWorkShiftDto.ShiftType))
+                {
+                    return BadRequest("Invalid ShiftType provided.");
+                }
+                var workshift = _mapper.Map<WorkShift>(updateWorkShiftDto);
+
+                await _workShiftRepository.UpdateAsync(existingWorkShift, workshift);
                 return Ok(new UserValidationResponse(true, "Work shift updated successfully"));
             }
             catch (Exception ex)
@@ -117,7 +127,7 @@ namespace WorkManagementPortal.Backend.API.Controllers
         // Example of POST (creating a new work shift)
         [HttpPost]
         [Route("CreateWorkShift")]
-        public async Task<IActionResult> CreateWorkShift([FromBody] WorkShift createWorkShiftDto)
+        public async Task<IActionResult> CreateWorkShift([FromBody] WorkShiftDto createWorkShiftDto)
         {
             try
             {
@@ -125,7 +135,12 @@ namespace WorkManagementPortal.Backend.API.Controllers
                 {
                     return BadRequest("Work shift data is incorrect");
                 }
-                await _workShiftRepository.AddAsync(createWorkShiftDto);
+                if (!Enum.IsDefined(typeof(ShiftType), createWorkShiftDto.ShiftType))
+                {
+                    return BadRequest("Invalid ShiftType provided.");
+                }
+                var workshift = _mapper.Map<WorkShift>(createWorkShiftDto);
+                await _workShiftRepository.AddAsync(workshift);
                 return Ok(new UserValidationResponse(true, "Work shift created successfully"));
             }
             catch (Exception ex)

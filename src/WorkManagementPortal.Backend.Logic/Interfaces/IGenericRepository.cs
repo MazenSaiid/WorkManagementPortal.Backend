@@ -12,7 +12,7 @@ namespace WorkManagementPortal.Backend.Logic.Interfaces
         public interface IGenericRepository<T, TKey> where T : class
         {
             Task AddAsync(T entity);
-            Task UpdateAsync( TKey id, T entity);
+            Task UpdateAsync( T entityToUpdate, T entity);
             Task DeleteAsync(TKey id);
             Task<IEnumerable<T>> GetAllAsync();
             Task<T> GetByIdAsync(TKey id);

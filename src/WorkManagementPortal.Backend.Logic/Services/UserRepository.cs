@@ -144,14 +144,16 @@ namespace WorkManagementPortal.Backend.Logic.Services
         {
             try
             {
-                var employeesWithSupervisors = await _context.Users
+                var employeesWithHeads = await _context.Users
                     .Where(u => u.SupervisorId != null && u.TeamLeaderId != null)
                     .Include(u => u.Supervisor).Include(u=>u.TeamLeader)
                     .ToListAsync();
-                var employeesDTOs = _mapper.Map<IEnumerable<UserDto>>(employeesWithSupervisors);
+                var employeesDTOs = _mapper.Map<IEnumerable<UserDto>>(employeesWithHeads);
                 foreach (var employee in employeesDTOs)
                 {
                     employee.RoleName = "Employee";
+                    employee.Supervisor.RoleName = "Supervisor";
+                    employee.TeamLeader.RoleName = "TeamLead";
                 }
                 return new UserValidationResponse(true, "Employees fetched successfully", employeesDTOs);
             }

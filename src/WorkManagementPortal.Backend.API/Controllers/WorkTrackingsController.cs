@@ -5,6 +5,10 @@ using WorkManagementPortal.Backend.Infrastructure.Models;
 using System.Linq;
 using WorkManagementPortal.Backend.Infrastructure.Enums;
 using Microsoft.EntityFrameworkCore;
+using System.Text.Json.Serialization;
+using System.Text.Json;
+using AutoMapper;
+using WorkManagementPortal.Backend.Infrastructure.Dtos.WorkLog;
 
 namespace WorkManagementPortal.Backend.API.Controllers
 {
@@ -13,10 +17,11 @@ namespace WorkManagementPortal.Backend.API.Controllers
     public class WorkTrackingsController : ControllerBase
     {
         private readonly ApplicationDbContext _context;
-
-        public WorkTrackingsController(ApplicationDbContext context)
+        private readonly IMapper _mapper;
+        public WorkTrackingsController(ApplicationDbContext context, IMapper mapper)
         {
             _context = context;
+            _mapper = mapper;
         }
 
         // Clock In Method
@@ -29,16 +34,16 @@ namespace WorkManagementPortal.Backend.API.Controllers
             }
 
             var existingLog = _context.WorkTrackingLogs
-                                      .FirstOrDefault(w => w.UserId == userId && w.IsWorking == true);
+                                      .FirstOrDefault(w => w.UserId == userId && (w.IsWorking == true || w.IsPaused == true));
             if (existingLog != null)
             {
-                return BadRequest("User is already clocked in.");
+                return BadRequest("User is already already working.");
             }
 
             var workLog = new WorkTrackingLog
             {
                 UserId = userId,
-                WorkTimeStart = DateTime.UtcNow,
+                WorkTimeStart = DateTime.Now,
                 WorkDate = DateOnly.FromDateTime(DateTime.Now),
                 IsWorking = true,
                 IsPaused = false
@@ -46,8 +51,8 @@ namespace WorkManagementPortal.Backend.API.Controllers
 
             _context.WorkTrackingLogs.Add(workLog);
             _context.SaveChanges();
-
-            return Ok(workLog);
+            var result = _mapper.Map<WorkTrackingLogDTO>(workLog);
+            return Ok(result);
         }
 
         // Clock Out Method
@@ -65,7 +70,7 @@ namespace WorkManagementPortal.Backend.API.Controllers
                 return NotFound("Work log not found.");
             }
 
-            workLog.WorkTimeEnd = DateTime.UtcNow;
+            workLog.WorkTimeEnd = DateTime.Now;
             workLog.IsWorking = false;
             workLog.IsPaused = false;
             workLog.HasFinished = true;
@@ -75,10 +80,10 @@ namespace WorkManagementPortal.Backend.API.Controllers
 
             // Get pauses for the work log
             var pauses = _context.PauseTrackingLogs.Where(p => p.WorkTrackingLogId == workLog.Id).ToList();
-            var totalPausedHours = pauses.Sum(p => p.PauseDuration) / 60;
-            workLog.ActualWorkDuration = totalWorkedHours - totalPausedHours;
-
-            return Ok(workLog);
+            var totalPausedHours = pauses.Sum(p => p.PauseDurationInMinutes) / 60;
+            workLog.ActualWorkDurationInHours = totalWorkedHours - totalPausedHours;
+            var result = _mapper.Map<WorkTrackingLogDTO>(workLog);
+            return Ok(result);
         }
 
         // Start Pause Method with Switch Case for Pause Types
@@ -104,7 +109,7 @@ namespace WorkManagementPortal.Backend.API.Controllers
                 UserId = workLog.UserId,
                 WorkTrackingLogId = workLogId,
                 WorkDate = DateOnly.FromDateTime(DateTime.Now),
-                PauseStart = DateTime.UtcNow
+                PauseStart = DateTime.Now
             };
             // Handle Pause Logic
             switch (pauseType)
@@ -123,7 +128,9 @@ namespace WorkManagementPortal.Backend.API.Controllers
             }
             _context.PauseTrackingLogs.Add(pausedLog);
             _context.SaveChanges();
-            return Ok(workLog);
+
+            var result = _mapper.Map<PauseTrackingLogDTO>(pausedLog);
+            return Ok(result);
         }
 
         // End Pause Method with Resuming Work Hours Logic
@@ -143,15 +150,16 @@ namespace WorkManagementPortal.Backend.API.Controllers
                 return NotFound("Pause records not found.");
             }
             
-            pauseTracking.PauseEnd = DateTime.UtcNow;
-            pauseTracking.PauseDuration = (pauseTracking.PauseEnd - pauseTracking.PauseStart).TotalMinutes;
+            pauseTracking.PauseEnd = DateTime.Now;
+            pauseTracking.PauseDurationInMinutes = (pauseTracking.PauseEnd - pauseTracking.PauseStart).TotalMinutes;
 
             pauseTracking.WorkTrackingLog.IsPaused = false;
             pauseTracking.WorkTrackingLog.IsWorking = true;
 
             _context.SaveChanges();
 
-            return Ok(pauseTracking);
+            var result = _mapper.Map<PauseTrackingLogDTO>(pauseTracking);
+            return Ok(result);
         }
 
         // Get Work Log by ID (for validation, debugging, etc.)
@@ -168,8 +176,8 @@ namespace WorkManagementPortal.Backend.API.Controllers
             {
                 return NotFound("Work log not found.");
             }
-
-            return Ok(workLog);
+            var result = _mapper.Map<WorkTrackingLogDTO>(workLog);
+            return Ok(result);
         }
     }
 }

@@ -98,7 +98,19 @@ namespace WorkManagementPortal.Backend.API.Controllers
 
             return BadRequest(response);
         }
+        // Get all employees and their supervisors
+        [HttpGet("EmployeesAndTheirHeads")]
+        public async Task<IActionResult> GetAllEmployeesAndHeads()
+        {
+            var response = await _userRepository.GetAllEmployeesAndHeadsAsync();
 
+            if (response.Success)
+            {
+                return Ok(response);
+            }
+
+            return BadRequest(response);
+        }
         // Fetching all users)
         [HttpGet]
         [Route("GetAllUsers")]
@@ -281,6 +293,12 @@ namespace WorkManagementPortal.Backend.API.Controllers
                 {
                     return false; // A user cannot be their own supervisor
                 }
+                existingUser.SupervisorId = entity.SupervisorId;
+                var usersAssignedToSupervisor = await _userManager.Users.Where(t => t.SupervisorId == id).ToListAsync();
+                foreach (var user in usersAssignedToSupervisor)
+                {
+                    user.SupervisorId = entity.SupervisorId;
+                }
             }
 
             // 2. Validate TeamLeaderId if provided (It should exist in the database)
@@ -297,10 +315,14 @@ namespace WorkManagementPortal.Backend.API.Controllers
                 {
                     return false; // A user cannot be their own team leader
                 }
-            }
 
-            existingUser.SupervisorId = entity.SupervisorId;
-            existingUser.TeamLeaderId = entity.TeamLeaderId;
+                existingUser.TeamLeaderId = entity.TeamLeaderId;
+                var usersAssignedToTeamLeader = await _userManager.Users.Where(t => t.TeamLeaderId == id).ToListAsync();
+                foreach (var user in usersAssignedToTeamLeader)
+                {
+                    user.TeamLeaderId = entity.TeamLeaderId;
+                }
+            }
 
             return true; // Supervisor and Team Leader IDs validated and assigned successfully
         }
