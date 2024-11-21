@@ -82,6 +82,7 @@ namespace WorkManagementPortal.Backend.API.Controllers
             var pauses = _context.PauseTrackingLogs.Where(p => p.WorkTrackingLogId == workLog.Id).ToList();
             var totalPausedHours = pauses.Sum(p => p.PauseDurationInMinutes) / 60;
             workLog.ActualWorkDurationInHours = totalWorkedHours - totalPausedHours;
+            _context.SaveChanges();
             var result = _mapper.Map<WorkTrackingLogDTO>(workLog);
             return Ok(result);
         }
