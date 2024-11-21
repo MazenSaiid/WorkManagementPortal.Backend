@@ -53,6 +53,7 @@ namespace WorkManagementPortal.Backend.Logic.Services
                     Email = model.Email,
                     FirstName = model.FirstName,
                     LastName = model.LastName,
+                    PhoneNumber = model.PhoneNumber,
                     SupervisorId = !string.IsNullOrEmpty(model.SupervisorId) ? model.SupervisorId :null,
                     TeamLeaderId = !string.IsNullOrEmpty(model.TeamLeaderId) ? model.TeamLeaderId : null,
                     WorkShiftId = model.WorkShiftId > 0  ? model.WorkShiftId : null,
