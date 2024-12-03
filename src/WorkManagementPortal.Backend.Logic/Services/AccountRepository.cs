@@ -20,12 +20,14 @@ namespace WorkManagementPortal.Backend.Logic.Services
         private readonly UserManager<User> _userManager;
         private readonly RoleManager<IdentityRole> _roleManager;
         private readonly IConfiguration _configuration;
+        private readonly INotificationRepository _notificationRepository;
 
-        public AccountRepository(UserManager<User> userManager, RoleManager<IdentityRole> roleManager, IConfiguration configuration)
+        public AccountRepository(INotificationRepository notificationRepository,UserManager<User> userManager, RoleManager<IdentityRole> roleManager, IConfiguration configuration)
         {
             _userManager = userManager;
             _roleManager = roleManager;
             _configuration = configuration;
+            _notificationRepository = notificationRepository;
         }
 
         // Check if an email already exists in the system
@@ -147,16 +149,11 @@ namespace WorkManagementPortal.Backend.Logic.Services
             // Send the token via email to the user (you need to implement email sending)
             var resetLink = $"{_configuration["App:PasswordResetUrl"]}?token={token}&email={email}";
             // send an email to the user with the resetLink here.
-            await SendPasswordResetEmailAsync(email, resetLink);
+            await _notificationRepository.SendPasswordResetEmailAsync(email, resetLink);
 
             return new ValidationResponse(true, "Password reset link has been sent to your email.");
         }
 
-        private async Task SendPasswordResetEmailAsync(string email, string resetLink)
-        {
-            // Implement email sending logic here (this could be via SMTP, SendGrid, etc.)
-            // For example, use an email service to send the resetLink to the user's email.
-        }
 
         public async Task<ValidationResponse> ResetPasswordAsync(string email, string token, string newPassword)
         {

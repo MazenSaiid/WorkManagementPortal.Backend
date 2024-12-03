@@ -15,6 +15,7 @@ namespace WorkManagementPortal.Backend.API.Extensions
             services.AddScoped(typeof(IGenericRepository<,>), typeof(GenericRepository<,>));
             services.AddScoped<IAccountRepository, AccountRepository>();
             services.AddScoped<IUserRepository, UserRepository>();
+            services.AddScoped<INotificationRepository, NotificationRepository>();
             services.AddScoped<IWorkShiftRepository, WorkShiftRepository>();
             services.AddScoped<ISeedData, SeedData>();
 

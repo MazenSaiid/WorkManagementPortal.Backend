@@ -76,6 +76,37 @@ namespace WorkManagementPortal.Backend.API.Controllers
             }
             return NotFound(result);
         }
+        // Request a password reset
+        [HttpPost]
+        [Route("RequestPasswordReset")]
+        public async Task<IActionResult> RequestPasswordReset(string email)
+        {
+            if (string.IsNullOrEmpty(email))
+                return BadRequest(new ValidationResponse(false, "Email is required."));
+
+            var result = await _accountRepository.RequestPasswordResetAsync(email);
+            if (result.Success)
+            {
+                return Ok(result);
+            }
+            return BadRequest(result);
+        }
+
+        // Reset a user's password
+        [HttpPost]
+        [Route("ResetPassword")]
+        public async Task<IActionResult> ResetPassword(string email, string token, string newPassword)
+        {
+            if (string.IsNullOrEmpty(email) || string.IsNullOrEmpty(token) || string.IsNullOrEmpty(newPassword))
+                return BadRequest(new ValidationResponse(false, "Email, token, and new password are required."));
+
+            var result = await _accountRepository.ResetPasswordAsync(email, token, newPassword);
+            if (result.Success)
+            {
+                return Ok(result);
+            }
+            return BadRequest(result);
+        }
     }
 }
 
