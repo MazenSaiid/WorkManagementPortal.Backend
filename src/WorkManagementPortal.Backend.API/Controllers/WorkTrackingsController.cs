@@ -119,7 +119,7 @@ namespace WorkManagementPortal.Backend.API.Controllers
                     pausedLog.PauseType = PauseType.Meeting; 
                     break;
                 case (int)PauseType.Break:
-                    pausedLog.PauseType = PauseType.Meeting;
+                    pausedLog.PauseType = PauseType.Break;
                     break;
                 case (int)PauseType.InCall:
                     pausedLog.PauseType = PauseType.InCall;
