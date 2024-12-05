@@ -3,16 +3,17 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.IdentityModel.Tokens;
 using WorkManagementPortal.Backend.Infrastructure.Dtos.Roles;
 using WorkManagementPortal.Backend.Infrastructure.Models;
 using WorkManagementPortal.Backend.Logic.Interfaces;
+using WorkManagementPortal.Backend.Logic.Responses;
 using WorkManagementPortal.Backend.Logic.Services;
 
 namespace WorkManagementPortal.Backend.API.Controllers
 {
     [ApiController]
     [Route("api/[controller]")]
-     // Ensuring that only Admins can perform these operations.
     public class RoleController : ControllerBase
     {
         private readonly RoleManager<IdentityRole> _roleManager;
@@ -29,10 +30,9 @@ namespace WorkManagementPortal.Backend.API.Controllers
         [Route("GetAllRoles")]
         public async Task<IActionResult> GetAllRoles()
         {
-            var roles = _roleManager.Roles;  // Get all roles from the RoleManager.
+            var roles = _roleManager.Roles;
             var roleList = new List<RolesListDto>();
 
-            // Add each role (Id and Name) to the list.
             foreach (var role in roles)
             {
                 roleList.Add(new RolesListDto
@@ -42,34 +42,55 @@ namespace WorkManagementPortal.Backend.API.Controllers
                 });
             }
 
-            return Ok(roleList); 
+            var response = new RolesValidationResponse(
+                true,
+                "Roles retrieved successfully.",
+                roles: roleList
+            );
+            return Ok(response); 
         }
 
-        // 2. **Create (Add) Role**
+        // 2. **Create Role**
         [HttpPost]
         [Route("CreateRole")]
-        public async Task<IActionResult> CreateRole([FromBody] string roleName)
+        public async Task<IActionResult> CreateRole([FromBody] RoleCreateDto roleCreateDto)
         {
-            if (string.IsNullOrEmpty(roleName))
+            if (string.IsNullOrEmpty(roleCreateDto.RoleName))
             {
-                return BadRequest("Role name is required.");
+                var response = new RolesValidationResponse(
+                    false,
+                    "Role name is required."
+                );
+                return BadRequest(response);
             }
 
-            var roleExist = await _roleManager.RoleExistsAsync(roleName);
+            var roleExist = await _roleManager.RoleExistsAsync(roleCreateDto.RoleName);
             if (roleExist)
             {
-                return BadRequest("Role already exists.");
+                var response = new RolesValidationResponse(
+                    false,
+                    "Role already exists."
+                );
+                return BadRequest(response);
             }
 
-            var role = new IdentityRole(roleName);
+            var role = new IdentityRole(roleCreateDto.RoleName);
             var result = await _roleManager.CreateAsync(role);
 
             if (result.Succeeded)
             {
-                return Ok($"Role '{roleName}' created successfully.");
+                var response = new RolesValidationResponse(
+                    true,
+                    $"Role '{roleCreateDto.RoleName}' created successfully."
+                );
+                return Ok(response);
             }
 
-            return BadRequest(result.Errors);
+            var responseFailure = new RolesValidationResponse(
+                false,
+                string.Join(", ", result.Errors.Select(e => e.Description))
+            );
+            return BadRequest(responseFailure);
         }
 
         // 3. **Update Role Name**
@@ -77,26 +98,42 @@ namespace WorkManagementPortal.Backend.API.Controllers
         [Route("UpdateRole")]
         public async Task<IActionResult> UpdateRole([FromBody] RoleUpdateDto model)
         {
-            if (model == null || string.IsNullOrEmpty(model.NewRoleName))
+            if (model == null || string.IsNullOrEmpty(model.RoleName))
             {
-                return BadRequest("Role update data is incomplete.");
+                var response = new RolesValidationResponse(
+                    false,
+                    "Role update data is incomplete."
+                );
+                return BadRequest(response);
             }
 
             var role = await _roleManager.FindByIdAsync(model.RoleId);
             if (role == null)
             {
-                return NotFound("Role not found.");
+                var response = new RolesValidationResponse(
+                    false,
+                    "Role not found."
+                );
+                return NotFound(response);
             }
 
-            role.Name = model.NewRoleName;
+            role.Name = model.RoleName;
             var result = await _roleManager.UpdateAsync(role);
 
             if (result.Succeeded)
             {
-                return Ok($"Role '{role.Name}' updated to '{model.NewRoleName}' successfully.");
+                var response = new RolesValidationResponse(
+                    true,
+                    $"Role '{role.Name}' updated to '{model.RoleName}' successfully."
+                );
+                return Ok(response);
             }
 
-            return BadRequest(result.Errors);
+            var responseFailure = new RolesValidationResponse(
+                false,
+                string.Join(", ", result.Errors.Select(e => e.Description))
+            );
+            return BadRequest(responseFailure);
         }
 
         // 4. **Delete Role**
@@ -106,31 +143,78 @@ namespace WorkManagementPortal.Backend.API.Controllers
         {
             if (string.IsNullOrEmpty(roleId))
             {
-                return BadRequest("Role ID is required.");
+                var response = new RolesValidationResponse(
+                    false,
+                    "Role ID is required."
+                );
+                return BadRequest(response);
             }
 
             var role = await _roleManager.FindByIdAsync(roleId);
             if (role == null)
             {
-                return NotFound("Role not found.");
+                var response = new RolesValidationResponse(
+                    false,
+                    "Role not found."
+                );
+                return NotFound(response);
             }
 
-            // Optionally, check if any users are assigned to this role
             var usersInRole = await _userManager.GetUsersInRoleAsync(role.Name);
             if (usersInRole.Count > 0)
             {
-                return BadRequest("Cannot delete a role that is assigned to users.");
+                var response = new RolesValidationResponse(
+                    false,
+                    "Cannot delete a role that is assigned to users."
+                );
+                return BadRequest(response);
             }
 
             var result = await _roleManager.DeleteAsync(role);
 
             if (result.Succeeded)
             {
-                return Ok($"Role '{role.Name}' deleted successfully.");
+                var response = new RolesValidationResponse(
+                    true,
+                    $"Role '{role.Name}' deleted successfully."
+                );
+                return Ok(response);
             }
 
-            return BadRequest(result.Errors);
+            var responseFailure = new RolesValidationResponse(
+                false,
+                string.Join(", ", result.Errors.Select(e => e.Description))
+            );
+            return BadRequest(responseFailure);
+        }
+
+        // 5. **Get user count per role**
+        [HttpGet]
+        [Route("GetUserCountPerRole")]
+        public async Task<IActionResult> GetUserCountPerRole()
+        {
+            var roles = _roleManager.Roles;
+            var roleUserCounts = new List<RolesListDto>();
+
+            foreach (var role in roles)
+            {
+                var usersInRole = await _userManager.GetUsersInRoleAsync(role.Name);
+                roleUserCounts.Add(new RolesListDto
+                {
+                    Id = role.Id,
+                    RoleName = role.Name,
+                    UserCount = usersInRole.Count
+                });
+            }
+
+            var response = new RolesValidationResponse(
+                true,
+                "User count per role retrieved successfully.",
+                roles: roleUserCounts
+            );
+            return Ok(response);
         }
     }
+
 
 }

@@ -6,9 +6,8 @@ using System.Threading.Tasks;
 
 namespace WorkManagementPortal.Backend.Infrastructure.Dtos.Roles
 {
-    public class RoleUpdateDto
+    public class RoleCreateDto
     {
-        public string RoleId { get; set; }
         public string RoleName { get; set; }
     }
 }
