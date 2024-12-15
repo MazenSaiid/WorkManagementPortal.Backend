@@ -37,7 +37,6 @@ namespace WorkManagementPortal.Backend.API.Extensions
                 var serviceProvider = scope.ServiceProvider;
                 var seedData = serviceProvider.GetRequiredService<ISeedData>();
                 await seedData.SeedRoles(serviceProvider);
-                await seedData.SeedShifts(serviceProvider);
             }
         }
 

@@ -8,6 +8,7 @@ using System.Text;
 using System.Threading.Tasks;
 using WorkManagementPortal.Backend.API.Dtos.User;
 using WorkManagementPortal.Backend.Infrastructure.Context;
+using WorkManagementPortal.Backend.Infrastructure.Enums;
 using WorkManagementPortal.Backend.Infrastructure.Models;
 using WorkManagementPortal.Backend.Logic.Interfaces;
 using WorkManagementPortal.Backend.Logic.Responses;
@@ -47,11 +48,12 @@ namespace WorkManagementPortal.Backend.Logic.Services
         {
             try
             {
-                var supervisors = await GetUsersByRoleAsync("Supervisor");
+                var supervisorRole = UserRoles.Supervisor.ToString();
+                var supervisors = await GetUsersByRoleAsync(supervisorRole);
                 var supervisorsDTOs = _mapper.Map<IEnumerable<UserDto>>(supervisors);
                 foreach (var supervisor in supervisorsDTOs)
                 {
-                    supervisor.RoleName = "Supervisor";  
+                    supervisor.RoleName = supervisorRole;  
                 }
                 return new UserValidationResponse(true, "Supervisors fetched successfully", supervisorsDTOs);
             }
@@ -65,11 +67,12 @@ namespace WorkManagementPortal.Backend.Logic.Services
         {
             try
             {
-                var teamLeaders = await GetUsersByRoleAsync("TeamLead");
+                var teamLeadRole = UserRoles.TeamLead.ToString();
+                var teamLeaders = await GetUsersByRoleAsync(teamLeadRole);
                 var teamLeadersDTOs = _mapper.Map<IEnumerable<UserDto>>(teamLeaders);
                 foreach (var teamLeader in teamLeadersDTOs)
                 {
-                    teamLeader.RoleName = "TeamLead";
+                    teamLeader.RoleName = teamLeadRole;
                 }
                 return new UserValidationResponse(true, "Team leaders fetched successfully", teamLeadersDTOs);
             }
@@ -83,11 +86,12 @@ namespace WorkManagementPortal.Backend.Logic.Services
         {
             try
             {
-                var employees = await GetUsersByRoleAsync("Employee");
+                var employeeRole = UserRoles.Employee.ToString();
+                var employees = await GetUsersByRoleAsync(employeeRole);
                 var employeesDTOs = _mapper.Map<IEnumerable<UserDto>>(employees);
                 foreach (var employee in employeesDTOs)
                 {
-                    employee.RoleName = "Employee";
+                    employee.RoleName = employeeRole;
                 }
                 return new UserValidationResponse(true, "Employees fetched successfully", employeesDTOs);
             }
@@ -108,8 +112,8 @@ namespace WorkManagementPortal.Backend.Logic.Services
                 var supervisorsWithTeamLeadersDTOs = _mapper.Map<IEnumerable<UserDto>>(supervisorsWithTeamLeaders);
                 foreach (var supervisor in supervisorsWithTeamLeadersDTOs)
                 {
-                    supervisor.RoleName = "Supervisor";
-                    supervisor.TeamLeader.RoleName = "TeamLead";
+                    supervisor.RoleName = UserRoles.Supervisor.ToString();
+                    supervisor.TeamLeader.RoleName = UserRoles.TeamLead.ToString();
                 }
                 return new UserValidationResponse(true, "Supervisors and their team leaders fetched successfully", supervisorsWithTeamLeadersDTOs);
             }
@@ -130,8 +134,8 @@ namespace WorkManagementPortal.Backend.Logic.Services
                 var employeesWithSupervisorsDTOs = _mapper.Map<IEnumerable<UserDto>>(employeesWithSupervisors);
                 foreach (var employee in employeesWithSupervisorsDTOs)
                 {
-                    employee.RoleName = "Employee";
-                    employee.Supervisor.RoleName = "Supervisor";
+                    employee.RoleName = UserRoles.Employee.ToString();
+                    employee.Supervisor.RoleName = UserRoles.Supervisor.ToString();
                 }
                 return new UserValidationResponse(true, "Employees and their supervisors fetched successfully", employeesWithSupervisorsDTOs);
             }
@@ -151,9 +155,9 @@ namespace WorkManagementPortal.Backend.Logic.Services
                 var employeesDTOs = _mapper.Map<IEnumerable<UserDto>>(employeesWithHeads);
                 foreach (var employee in employeesDTOs)
                 {
-                    employee.RoleName = "Employee";
-                    employee.Supervisor.RoleName = "Supervisor";
-                    employee.TeamLeader.RoleName = "TeamLead";
+                    employee.RoleName = UserRoles.Employee.ToString();
+                    employee.Supervisor.RoleName = UserRoles.Supervisor.ToString();
+                    employee.TeamLeader.RoleName = UserRoles.TeamLead.ToString();
                 }
                 return new UserValidationResponse(true, "Employees fetched successfully", employeesDTOs);
             }

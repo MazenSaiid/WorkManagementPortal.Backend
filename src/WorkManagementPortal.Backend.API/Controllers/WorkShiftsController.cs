@@ -48,7 +48,25 @@ namespace WorkManagementPortal.Backend.API.Controllers
                 return StatusCode(500, $"Error fetching all work shifts: {ex.Message}");
             }
         }
+        [HttpGet]
+        [Route("GetShiftTypes")]
+        public IActionResult GetShiftTypes()
+        {
+            try
+            {
+                // Get enum values from ShiftType enum
+                var shiftTypes = Enum.GetValues(typeof(ShiftType))
+                                     .Cast<ShiftType>()
+                                     .Select(e => new { id = (int)e, name = e.ToString() })
+                                     .ToList();
 
+                return Ok(shiftTypes);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, $"Error fetching shift types: {ex.Message}");
+            }
+        }
         // Example of GET by ID for a work shift
         [HttpGet]
         [Route("GetWorkShiftById/{id}")]

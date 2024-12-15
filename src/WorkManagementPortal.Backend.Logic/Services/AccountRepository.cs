@@ -1,6 +1,8 @@
-﻿using Microsoft.AspNetCore.Identity;
+﻿using Azure;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.Extensions.Configuration;
 using Microsoft.IdentityModel.Tokens;
+using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
 using System.IdentityModel.Tokens.Jwt;
@@ -77,38 +79,50 @@ namespace WorkManagementPortal.Backend.Logic.Services
 
         }
 
-        // Login method to authenticate a user and generate JWT token
-        public async Task<ValidationResponse> LoginAsync(LoginModel model)
+        public async Task<LoginValidationResponse> LoginAsync(LoginModel model)
         {
             var user = await _userManager.FindByEmailAsync(model.Email);
             if (user != null && await _userManager.CheckPasswordAsync(user, model.Password))
             {
+                // Prepare claims for the JWT
                 var authClaims = new List<Claim>
-            {
-                new Claim(ClaimTypes.Name, user.UserName),
-                new Claim(ClaimTypes.Email, user.Email)
-            };
+        {
+            new Claim(ClaimTypes.Name, user.UserName),
+            new Claim(ClaimTypes.Email, user.Email)
+        };
 
+                // Add roles to the claims
                 var userRoles = await _userManager.GetRolesAsync(user);
                 foreach (var role in userRoles)
                 {
                     authClaims.Add(new Claim(ClaimTypes.Role, role));
                 }
 
+                // Generate a JWT token
                 var authSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_configuration["Jwt:Key"]));
                 var token = new JwtSecurityToken(
                     issuer: _configuration["Jwt:Issuer"],
                     audience: _configuration["Jwt:Audience"],
-                    expires: DateTime.Now.AddHours(3),
+                    expires: DateTime.Now.AddHours(3), // Expiration date of the token
                     claims: authClaims,
                     signingCredentials: new SigningCredentials(authSigningKey, SecurityAlgorithms.HmacSha256)
                 );
 
-                return new ValidationResponse(true, "Login successful", new JwtSecurityTokenHandler().WriteToken(token));
+                // Return the full response
+                return new LoginValidationResponse(
+                    success: true,
+                    message: "Login successful",
+                    token: new JwtSecurityTokenHandler().WriteToken(token),
+                    username: user.UserName, // Return the username
+                    userId: user.Id, // Return the userId
+                    roles: userRoles.ToList(), // Return the roles
+                    localSessionExpireDate: DateTime.Now.AddHours(3) // Return the expiration date
+                );
             }
 
-            return new ValidationResponse(false, "Invalid login attempt.");
+            return new LoginValidationResponse(false, "Invalid login attempt.");
         }
+
 
         // Get current user by user ID and parse token
         public async Task<ValidationResponse> GetCurrentUserAsync(string userId, string token)

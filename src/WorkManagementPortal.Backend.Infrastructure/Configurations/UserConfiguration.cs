@@ -25,7 +25,10 @@ namespace WorkManagementPortal.Backend.Infrastructure.Configurations
                 .OnDelete(DeleteBehavior.Restrict);
 
             builder.HasOne(u => u.WorkShift)
-                .WithMany().HasForeignKey(u => u.WorkShiftId);
+                 .WithMany(ws => ws.Users)
+                 .HasForeignKey(u => u.WorkShiftId)
+                 .OnDelete(DeleteBehavior.SetNull);
+
         }
     }
 }

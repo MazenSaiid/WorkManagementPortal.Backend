@@ -13,7 +13,7 @@ namespace WorkManagementPortal.Backend.Logic.Interfaces
     {
         Task<bool> CheckExistingEmailAsync(string email);
         Task<ValidationResponse> RegisterAsync(RegisterModel model);
-        Task<ValidationResponse> LoginAsync(LoginModel model);
+        Task<LoginValidationResponse> LoginAsync(LoginModel model);
         Task<ValidationResponse> GetCurrentUserAsync(string userId, string token);
         Task<IList<string>> GetRolesAsync(User user);
         Task<ValidationResponse> RequestPasswordResetAsync(string email);

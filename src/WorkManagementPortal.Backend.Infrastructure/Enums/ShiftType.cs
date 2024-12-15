@@ -10,6 +10,7 @@ namespace WorkManagementPortal.Backend.Infrastructure.Enums
     {
         Morning=31,
         MidDay,
+        Evening,
         Night,
     }
 }

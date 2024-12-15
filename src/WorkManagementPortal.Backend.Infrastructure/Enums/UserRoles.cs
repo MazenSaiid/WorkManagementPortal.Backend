@@ -6,12 +6,12 @@ using System.Threading.Tasks;
 
 namespace WorkManagementPortal.Backend.Infrastructure.Enums
 {
-    public enum PauseType
+    public enum UserRoles
     {
-        Meeting = 1,
-        Break,
-        InCall,
-        Bathroom,
-        Other,
+        Admin =61, 
+        Manager,
+        Employee,
+        Supervisor, 
+        TeamLead
     }
 }

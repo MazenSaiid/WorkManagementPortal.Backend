@@ -15,5 +15,6 @@ namespace WorkManagementPortal.Backend.Infrastructure.Models
         public TimeOnly EndTime { get; set; }
         public string ShiftName { get; set; } = string.Empty ;
         public string ShiftTypeName => ShiftType.ToString();
+        public ICollection<User> Users { get; set; } = new HashSet<User>();
     }
 }

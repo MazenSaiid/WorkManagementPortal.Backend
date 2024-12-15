@@ -28,6 +28,7 @@ namespace WorkManagementPortal.Backend.Infrastructure.Models
         public ICollection<User> Supervisors { get; set; } = new HashSet<User>();
         public WorkShift WorkShift { get; set; }
         public int? WorkShiftId { get; set; }
+        public ICollection<ScreenShotTrackingLog> ScreenShotTrackingLogs { get; set; } = new HashSet<ScreenShotTrackingLog>();
     }
 
 }

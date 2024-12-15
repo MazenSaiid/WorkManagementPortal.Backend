@@ -14,6 +14,7 @@ namespace WorkManagementPortal.Backend.Infrastructure.Models
         public DateTime PauseStart { get; set; }
         public DateTime PauseEnd { get; set; }
         public double PauseDurationInMinutes { get; set; }
+        public bool PauseIsFinished { get; set; }
     }
     
 }
