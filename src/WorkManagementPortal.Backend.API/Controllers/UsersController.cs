@@ -132,7 +132,7 @@ namespace WorkManagementPortal.Backend.API.Controllers
                     var roles = await _userManager.GetRolesAsync(user);
                         if (roles.Any())
                         {
-                        usersDTO.RoleName = roles.FirstOrDefault() ?? "No Role"; 
+                        usersDTO.RoleName = roles.FirstOrDefault(); 
                         usersDTOs.Add(usersDTO);
                         }
                         else
@@ -165,7 +165,7 @@ namespace WorkManagementPortal.Backend.API.Controllers
                 var roles = await _userManager.GetRolesAsync(user);
                 if (roles.Any())
                 {
-                    userDTO.RoleName = roles.FirstOrDefault() ?? "No Role"; // You can handle multiple roles if necessary
+                    userDTO.RoleName = roles.FirstOrDefault(); // You can handle multiple roles if necessary
                 }
                 else
                 {
