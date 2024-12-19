@@ -31,7 +31,7 @@ namespace WorkManagementPortal.Backend.API.Controllers
             try
             {
                 // Get enum values from PauseType enum
-                var pauseTypes = Enum.GetValues(typeof(PauseType))
+                var pauseTypes =  Enum.GetValues(typeof(PauseType))
                                      .Cast<PauseType>()
                                      .Select(e => new { id = (int)e, name = e.ToString() })
                                      .ToList();
@@ -45,14 +45,14 @@ namespace WorkManagementPortal.Backend.API.Controllers
         }
         // Get Work Log by ID (for validation, debugging, etc.)
         [HttpGet("WorkLog/{workLogId}")]
-        public IActionResult GetWorkLogById([FromRoute] int workLogId)
+        public async Task<IActionResult> GetWorkLogById([FromRoute] int workLogId)
         {
             if (workLogId <= 0)
             {
                 return BadRequest("Invalid work log ID.");
             }
 
-            var workLog = _context.WorkTrackingLogs.FirstOrDefault(w => w.Id == workLogId);
+            var workLog = await _context.WorkTrackingLogs.FirstOrDefaultAsync(w => w.Id == workLogId);
             if (workLog == null)
             {
                 return NotFound("Work log not found.");
@@ -62,15 +62,15 @@ namespace WorkManagementPortal.Backend.API.Controllers
         }
         // Clock In Method
         [HttpPost("ClockIn")]
-        public IActionResult ClockIn([FromBody] string userId)
+        public async Task<IActionResult> ClockIn([FromBody] string userId)
         {
             if (string.IsNullOrEmpty(userId))
             {
                 return BadRequest("User ID cannot be null or empty.");
             }
 
-            var existingLog = _context.WorkTrackingLogs
-                                      .FirstOrDefault(w => w.UserId == userId && (w.IsWorking == true || w.IsPaused == true));
+            var existingLog =await _context.WorkTrackingLogs
+                                      .FirstOrDefaultAsync(w => w.UserId == userId && (w.IsWorking == true || w.IsPaused == true));
             if (existingLog != null)
             {
                 return BadRequest("User is already already working.");
@@ -85,8 +85,8 @@ namespace WorkManagementPortal.Backend.API.Controllers
                 IsPaused = false
             };
 
-            _context.WorkTrackingLogs.Add(workLog);
-            _context.SaveChanges();
+            await _context.WorkTrackingLogs.AddAsync(workLog);
+            await _context.SaveChangesAsync();
             var result = _mapper.Map<WorkTrackingLogDTO>(workLog);
 
             // Return WorkLogValidationResponse
@@ -96,14 +96,14 @@ namespace WorkManagementPortal.Backend.API.Controllers
 
         // Clock Out Method
         [HttpPost("ClockOut")]
-        public IActionResult ClockOut([FromBody] int workLogId)
+        public async Task<IActionResult> ClockOut([FromBody] int workLogId)
         {
             if (workLogId <= 0)
             {
                 return BadRequest("Invalid work log ID.");
             }
 
-            var workLog = _context.WorkTrackingLogs.FirstOrDefault(w => w.Id == workLogId);
+            var workLog = await _context.WorkTrackingLogs.FirstOrDefaultAsync(w => w.Id == workLogId);
             if (workLog == null)
             {
                 return NotFound("Work log not found.");
@@ -131,7 +131,7 @@ namespace WorkManagementPortal.Backend.API.Controllers
 
             var totalPausedHours = pauses.Sum(p => p.PauseDurationInMinutes) / 60;
             workLog.ActualWorkDurationInHours = totalWorkedHours - totalPausedHours;
-            _context.SaveChanges();
+            await _context.SaveChangesAsync();
             var result = _mapper.Map<WorkTrackingLogDTO>(workLog);
 
             // Return WorkLogValidationResponse
@@ -141,7 +141,7 @@ namespace WorkManagementPortal.Backend.API.Controllers
 
         // Get Work Logs by UserId and Date
         [HttpGet("GetWorkLogsByDate")]
-        public IActionResult GetWorkLogsByDate([FromQuery] string userId, [FromQuery] DateTime date)
+        public async Task<IActionResult> GetWorkLogsByDate([FromQuery] string userId, [FromQuery] DateTime date)
         {
             try
             {
@@ -150,11 +150,14 @@ namespace WorkManagementPortal.Backend.API.Controllers
                     return BadRequest("User ID cannot be null or empty.");
                 }
 
+                // Normalize the date to ensure correct filtering (we are only interested in the date part)
+                var startOfDay = date.Date;
+                var endOfDay = startOfDay.AddDays(1).AddTicks(-1);
                 // Query the WorkTrackingLogs based on the selected date and user
-                var workLog = _context.WorkTrackingLogs
-                                       .Where(w => w.UserId == userId && w.WorkDate == DateOnly.FromDateTime(date))
+                var workLog = await _context.WorkTrackingLogs
+                                       .Where(w => w.UserId == userId && w.WorkTimeStart >= startOfDay && w.WorkTimeEnd <= endOfDay)
                                        .Include(w => w.PauseTrackingLogs).Include(w => w.User)
-                                       .FirstOrDefault();
+                                       .FirstOrDefaultAsync();
 
                 if (workLog == null )
                 {
@@ -175,14 +178,14 @@ namespace WorkManagementPortal.Backend.API.Controllers
 
         // Start Pause Method with Switch Case for Pause Types
         [HttpPost("StartPause")]
-        public IActionResult StartPause([FromBody] StartPauseDto startPauseDto)
+        public async Task<IActionResult> StartPause([FromBody] StartPauseDto startPauseDto)
         {
             if (startPauseDto.WorkLogId <= 0)
             {
                 return BadRequest("Invalid work logID.");
             }
 
-            var workLog = _context.WorkTrackingLogs.FirstOrDefault(w => w.Id == startPauseDto.WorkLogId);
+            var workLog = await _context.WorkTrackingLogs.FirstOrDefaultAsync(w => w.Id == startPauseDto.WorkLogId);
             if (workLog == null)
             {
                 return NotFound("Work log not found or user has already clocked out.");
@@ -210,11 +213,17 @@ namespace WorkManagementPortal.Backend.API.Controllers
                 case (int)PauseType.InCall:
                     pausedLog.PauseType = PauseType.InCall;
                     break;
+                case (int)PauseType.Bathroom:
+                    pausedLog.PauseType = PauseType.Bathroom;
+                    break;
+                case (int)PauseType.Other:
+                    pausedLog.PauseType = PauseType.Other;
+                    break;
                 default:
                     return BadRequest("Invalid pause type.");
             }
-            _context.PauseTrackingLogs.Add(pausedLog);
-            _context.SaveChanges();
+             await _context.PauseTrackingLogs.AddAsync(pausedLog);
+            await _context.SaveChangesAsync();
 
             var result = _mapper.Map<PauseTrackingLogDTO>(pausedLog);
 
@@ -225,16 +234,16 @@ namespace WorkManagementPortal.Backend.API.Controllers
 
         // End Pause Method with Resuming Work Hours Logic
         [HttpPost("EndPause")]
-        public IActionResult EndPause([FromBody] int workLogId)
+        public async Task<IActionResult> EndPause([FromBody] int workLogId)
         {
             if (workLogId <= 0)
             {
                 return BadRequest("Invalid work logID.");
             }
 
-            var pauseTracking = _context.PauseTrackingLogs
+            var pauseTracking = await _context.PauseTrackingLogs
                 .Include(p => p.WorkTrackingLog)
-                .FirstOrDefault(p => p.WorkTrackingLogId == workLogId);
+                .FirstOrDefaultAsync(p => p.WorkTrackingLogId == workLogId);
             if (pauseTracking == null)
             {
                 return NotFound("Pause records not found.");
@@ -246,7 +255,7 @@ namespace WorkManagementPortal.Backend.API.Controllers
             pauseTracking.WorkTrackingLog.IsPaused = false;
             pauseTracking.WorkTrackingLog.IsWorking = true;
 
-            _context.SaveChanges();
+            await _context.SaveChangesAsync();
 
             var result = _mapper.Map<PauseTrackingLogDTO>(pauseTracking);
 

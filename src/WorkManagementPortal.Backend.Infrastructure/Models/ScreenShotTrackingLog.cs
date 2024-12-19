@@ -10,8 +10,11 @@ namespace WorkManagementPortal.Backend.Infrastructure.Models
     {
         public int Id { get; set; }
         public DateTime ScreenShotTime { get; set; }
+        public byte[] Screenshot { get; set; }
         public string UserId { get; set; }
         public User User { get; set; }
+        public int? WorkTrackingLogId { get; set; }
+        public WorkTrackingLog WorkTrackingLog { get; set; }
 
     }
 }

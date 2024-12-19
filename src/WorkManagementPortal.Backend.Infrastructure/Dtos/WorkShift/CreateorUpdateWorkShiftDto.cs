@@ -7,7 +7,7 @@ using WorkManagementPortal.Backend.Infrastructure.Enums;
 
 namespace WorkManagementPortal.Backend.Infrastructure.Dtos.WorkShift
 {
-    public class WorkShiftDto
+    public class CreateorUpdateWorkShiftDto
     {
         public ShiftType ShiftType { get; set; }
         public TimeOnly StartTime { get; set; }

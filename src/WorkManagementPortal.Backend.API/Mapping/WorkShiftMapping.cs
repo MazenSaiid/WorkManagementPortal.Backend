@@ -9,7 +9,7 @@ namespace WorkManagementPortal.Backend.API.Mapping
     {
         public WorkShiftMapping()
         {
-            CreateMap<WorkShift, WorkShiftDto>().ReverseMap();
+            CreateMap<WorkShift, CreateorUpdateWorkShiftDto>().ReverseMap();
             CreateMap<ListWorkShiftDto, WorkShift>().ReverseMap();
         }
     }

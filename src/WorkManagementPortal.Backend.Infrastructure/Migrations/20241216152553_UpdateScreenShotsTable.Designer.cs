@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using WorkManagementPortal.Backend.Infrastructure.Context;
 
@@ -11,9 +12,11 @@ using WorkManagementPortal.Backend.Infrastructure.Context;
 namespace WorkManagementPortal.Backend.Infrastructure.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20241216152553_UpdateScreenShotsTable")]
+    partial class UpdateScreenShotsTable
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -245,14 +248,9 @@ namespace WorkManagementPortal.Backend.Infrastructure.Migrations
                         .IsRequired()
                         .HasColumnType("nvarchar(450)");
 
-                    b.Property<int?>("WorkTrackingLogId")
-                        .HasColumnType("int");
-
                     b.HasKey("Id");
 
                     b.HasIndex("UserId");
-
-                    b.HasIndex("WorkTrackingLogId");
 
                     b.ToTable("ScreenShotTrackingLogs");
                 });
@@ -492,13 +490,7 @@ namespace WorkManagementPortal.Backend.Infrastructure.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.HasOne("WorkManagementPortal.Backend.Infrastructure.Models.WorkTrackingLog", "WorkTrackingLog")
-                        .WithMany("ScreenShotTrackingLogs")
-                        .HasForeignKey("WorkTrackingLogId");
-
                     b.Navigation("User");
-
-                    b.Navigation("WorkTrackingLog");
                 });
 
             modelBuilder.Entity("WorkManagementPortal.Backend.Infrastructure.Models.User", b =>
@@ -553,8 +545,6 @@ namespace WorkManagementPortal.Backend.Infrastructure.Migrations
             modelBuilder.Entity("WorkManagementPortal.Backend.Infrastructure.Models.WorkTrackingLog", b =>
                 {
                     b.Navigation("PauseTrackingLogs");
-
-                    b.Navigation("ScreenShotTrackingLogs");
                 });
 #pragma warning restore 612, 618
         }

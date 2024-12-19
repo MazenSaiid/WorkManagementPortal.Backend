@@ -18,6 +18,11 @@ namespace WorkManagementPortal.Backend.Infrastructure.Configurations
             .WithMany(u => u.ScreenShotTrackingLogs)  // A user can have many screenshot logs
             .HasForeignKey(s => s.UserId)    // Foreign key in ScreenShotTrackingLog
             .OnDelete(DeleteBehavior.Cascade); // Cascade delete on user deletion
+
+
+            builder.HasOne(s => s.WorkTrackingLog) // Reference to the related WorkTrackingLog
+            .WithMany(w => w.ScreenShotTrackingLogs) // One WorkTrackingLog has many ScreenShotTrackingLogs
+            .HasForeignKey(s => s.WorkTrackingLogId); // The foreign key in ScreenShotTrackingLogs
         }
     }
 }

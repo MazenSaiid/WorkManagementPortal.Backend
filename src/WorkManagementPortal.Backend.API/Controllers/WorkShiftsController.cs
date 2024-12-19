@@ -91,7 +91,7 @@ namespace WorkManagementPortal.Backend.API.Controllers
         // Example of PUT (updating an existing work shift)
         [HttpPut]
         [Route("UpdateWorkShift/{id}")]
-        public async Task<IActionResult> UpdateWorkShift(int id, [FromBody] WorkShiftDto updateWorkShiftDto)
+        public async Task<IActionResult> UpdateWorkShift(int id, [FromBody] CreateorUpdateWorkShiftDto updateWorkShiftDto)
         {
             try
             {
@@ -145,7 +145,7 @@ namespace WorkManagementPortal.Backend.API.Controllers
         // Example of POST (creating a new work shift)
         [HttpPost]
         [Route("CreateWorkShift")]
-        public async Task<IActionResult> CreateWorkShift([FromBody] WorkShiftDto createWorkShiftDto)
+        public async Task<IActionResult> CreateWorkShift([FromBody] CreateorUpdateWorkShiftDto createWorkShiftDto)
         {
             try
             {

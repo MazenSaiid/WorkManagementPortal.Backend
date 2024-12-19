@@ -21,6 +21,8 @@ namespace WorkManagementPortal.Backend.Infrastructure.Models
 
         // Navigation property to PauseTrackingLogs
         public ICollection<PauseTrackingLog> PauseTrackingLogs { get; set; }
+        // Navigation property to ScreenShotsTrackingLogs
+        public ICollection<ScreenShotTrackingLog> ScreenShotTrackingLogs { get; set; }
         public double ActualWorkDurationInHours { get; set; }
     }
 
