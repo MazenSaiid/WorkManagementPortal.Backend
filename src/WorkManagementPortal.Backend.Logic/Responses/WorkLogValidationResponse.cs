@@ -12,7 +12,7 @@ namespace WorkManagementPortal.Backend.Logic.Responses
     public class WorkLogValidationResponse : ValidationResponse
     {
         public WorkTrackingLogDTO WorkTrackingLog { get; set; }
-        public WorkLogValidationResponse(bool success, string message, WorkTrackingLogDTO workTrackingLog, string token = null)
+        public WorkLogValidationResponse(bool success, string message, WorkTrackingLogDTO workTrackingLog = null, string token = null)
             : base(success, message, token)
         {
             WorkTrackingLog = workTrackingLog;

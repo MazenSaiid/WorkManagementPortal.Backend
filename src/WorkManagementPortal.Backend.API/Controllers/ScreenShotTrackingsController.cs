@@ -87,28 +87,39 @@ namespace WorkManagementPortal.Backend.API.Controllers
                 if (screenshots == null || screenshots.Count == 0)
                 {
                     // Return validation response with no screenshots found
-                    return NotFound(new ScreenShotValidationResponse(false, "No screenshots found for the specified date."));
+                    return Ok(new ScreenShotValidationResponse(false, "No screenshots found for the specified date."));
                 }
 
-                // Map the screenshots to DTOs
-                var screenshotData = screenshots.Select(s => new ScreenShotLogDto
-                {
-                    Id = s.Id,
-                    ScreenShotTime = s.ScreenShotTime,
-                    UserId = s.UserId,
-                    UserName = s.User.UserName,  // Assuming you want the User's name
-                    ScreenshotBase64 = Convert.ToBase64String(s.Screenshot), // Convert image byte array to Base64 string
-                    WorkShift = s.User.WorkShift != null ? new ListWorkShiftDto
+                // Group the screenshots by UserId
+                var groupedScreenshots = screenshots
+                    .GroupBy(s => s.UserId)
+                    .Select(g => new UserScreenShotLogDto
                     {
-                        ShiftName = s.User.WorkShift.ShiftName,
-                        ShiftType = s.User.WorkShift.ShiftType,
-                        StartTime = s.User.WorkShift.StartTime,
-                        EndTime = s.User.WorkShift.EndTime
-                    } : new ListWorkShiftDto { }
-                }).ToList();
 
-                // Return successful validation response with screenshot data
-                return Ok(new ScreenShotValidationResponse(true, "Screenshots retrieved successfully",null,screenshotData));
+                        UserId = g.Key,
+                        UserName = g.First().User.UserName, 
+                        WorkShift = g.First().User.WorkShift != null ? new ListWorkShiftDto
+                        {
+                            ShiftName = g.First().User.WorkShift.ShiftName,
+                            ShiftType = g.First().User.WorkShift.ShiftType,
+                            StartTime = g.First().User.WorkShift.StartTime,
+                            EndTime = g.First().User.WorkShift.EndTime
+                        } : new ListWorkShiftDto { }
+                        ,
+                        Screenshots = g.Select(s => new ScreenShotLogDto
+                        {
+                            Id = s.Id,
+                            ScreenShotTime = s.ScreenShotTime,
+                            ScreenshotFile = new FileContentResult(s.Screenshot, "image/png")
+                            {
+                                FileDownloadName = $"screenshot_{s.Id}.png"
+                            }
+                        }).ToList()
+                    }).ToList();
+
+                // Return the grouped screenshots data
+                //return Ok(groupedScreenshots);
+                return Ok(new ScreenShotValidationResponse(true, "Screenshots retrieved successfully.", null, groupedScreenshots));
             }
             catch (Exception ex)
             {
@@ -116,6 +127,8 @@ namespace WorkManagementPortal.Backend.API.Controllers
                 return StatusCode(500, new ScreenShotValidationResponse(false, "An error occurred while retrieving the screenshots.", ex.Message));
             }
         }
+
+
 
         // Method to get all screenshots for a user on a specific date
         [HttpGet("GetScreenshotsForUser")]
@@ -146,25 +159,35 @@ namespace WorkManagementPortal.Backend.API.Controllers
                     return Ok(new ScreenShotValidationResponse(false, "No screenshots found for this user on the specified date."));
                 }
 
-                // Map the screenshots to DTOs
-                var screenshotData = screenshots.Select(s => new ScreenShotLogDto
-                {
-                    Id = s.Id,
-                    ScreenShotTime = s.ScreenShotTime,
-                    UserId = s.UserId,
-                    UserName = s.User.UserName,  // Assuming you want the User's name
-                    ScreenshotBase64 = Convert.ToBase64String(s.Screenshot), // Convert image byte array to Base64 string
-                    WorkShift = s.User.WorkShift != null ? new ListWorkShiftDto
+                var screenshotData =  screenshots
+                    .GroupBy(s => s.UserId)
+                    .Select(g => new UserScreenShotLogDto
                     {
-                        ShiftName = s.User.WorkShift.ShiftName,
-                        ShiftType = s.User.WorkShift.ShiftType,
-                        StartTime = s.User.WorkShift.StartTime,
-                        EndTime = s.User.WorkShift.EndTime
-                    } : new ListWorkShiftDto { }
-                }).ToList();
 
-                // Return successful validation response with screenshot data
-                return Ok(new ScreenShotValidationResponse(true, "Screenshots retrieved successfully",null,screenshotData));
+                        UserId = g.Key,
+                        UserName = g.First().User.UserName,
+                        WorkShift = g.First().User.WorkShift != null ? new ListWorkShiftDto
+                        {
+                            ShiftName = g.First().User.WorkShift.ShiftName,
+                            ShiftType = g.First().User.WorkShift.ShiftType,
+                            StartTime = g.First().User.WorkShift.StartTime,
+                            EndTime = g.First().User.WorkShift.EndTime
+                        } : new ListWorkShiftDto { }
+                        ,
+                        Screenshots = g.Select(s => new ScreenShotLogDto
+                        {
+                            Id = s.Id,
+                            ScreenShotTime = s.ScreenShotTime,
+                            ScreenshotFile = new FileContentResult(s.Screenshot, "image/png")
+                            {
+                                FileDownloadName = $"screenshot_{s.Id}.png"
+                            }
+                        }).ToList()
+                    }).ToList();
+
+                // Return the grouped screenshots data
+                return Ok(new ScreenShotValidationResponse(true, "Screenshots retrieved successfully.", null, screenshotData));
+
             }
             catch (Exception ex)
             {

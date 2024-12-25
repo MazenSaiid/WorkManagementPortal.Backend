@@ -3,16 +3,17 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using WorkManagementPortal.Backend.API.Dtos.User;
 using WorkManagementPortal.Backend.Infrastructure.Dtos.ScreenShot;
 
 namespace WorkManagementPortal.Backend.Logic.Responses
 {
     public class ScreenShotValidationResponse : ValidationResponse
     {
-        List<ScreenShotLogDto> ScreenShotLogDtos { get; set; }
-        public ScreenShotValidationResponse(bool success, string message, string token = null,List<ScreenShotLogDto >screenShotLogDto = null) : base(success, message, token)
+        public IEnumerable<UserScreenShotLogDto> UserScreenShotLogDtos { get; set; }
+        public ScreenShotValidationResponse(bool success, string message, string token = null, IEnumerable<UserScreenShotLogDto> userScreenShotLogDto = null) : base(success, message, token)
         {
-            ScreenShotLogDtos = screenShotLogDto;
+            UserScreenShotLogDtos = userScreenShotLogDto ?? new List<UserScreenShotLogDto>(); ;
         }
     }
 }
