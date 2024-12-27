@@ -13,6 +13,7 @@ using WorkManagementPortal.Backend.Infrastructure.Enums;
 using WorkManagementPortal.Backend.Infrastructure.Models;
 using WorkManagementPortal.Backend.Logic.Interfaces;
 using WorkManagementPortal.Backend.Logic.Responses;
+using WorkManagementPortal.Backend.Logic.Responses.PaginatedResponses;
 
 namespace WorkManagementPortal.Backend.Logic.Services
 {
@@ -52,7 +53,7 @@ namespace WorkManagementPortal.Backend.Logic.Services
             return _userManager.Users.Where(u => userRoles.Contains(u.Id));
         }
 
-        public async Task<UserValidationResponse> GetAllSupervisorsAsync(int page, int pageSize, bool fetchAll = false)
+        public async Task<ValidationResponse> GetAllSupervisorsAsync(int page, int pageSize, bool fetchAll = false)
         {
             try
             {
@@ -63,39 +64,42 @@ namespace WorkManagementPortal.Backend.Logic.Services
 
                 if (fetchAll)
                 {
-                    // If fetchAll is true, we get all supervisors without pagination
+                    // If fetchAll is true, we return all supervisors without pagination
                     var allSupervisors = supervisors.ToList();
                     var allSupervisorsDTOs = _mapper.Map<IEnumerable<UserDto>>(allSupervisors);
 
+                    // Set the role for each supervisor
                     foreach (var supervisor in allSupervisorsDTOs)
                     {
                         supervisor.RoleName = supervisorRole;
                     }
 
-                    return new UserValidationResponse(true, "All supervisors fetched successfully", 1, allSupervisors.Count, allSupervisors.Count, null, allSupervisorsDTOs);
+                    return new UserValidationResponse(true, "All supervisors fetched successfully", null, allSupervisorsDTOs);
                 }
                 else
                 {
-                    // Otherwise, paginate as usual
+                    // If pagination is needed, apply pagination
                     var paginatedResult = await _paginationHelper.GetPagedResult(supervisors, page, pageSize);
-
                     var supervisorsDTOs = _mapper.Map<IEnumerable<UserDto>>(paginatedResult.Items);
 
+                    // Set the role for each supervisor
                     foreach (var supervisor in supervisorsDTOs)
                     {
                         supervisor.RoleName = supervisorRole;
                     }
 
-                    return new UserValidationResponse(true, "Supervisors fetched successfully", page, pageSize, paginatedResult.TotalCount, null, supervisorsDTOs);
+                    return new UserValidationPaginatedResponse(true, "Supervisors fetched successfully", page, pageSize, paginatedResult.TotalCount, null, supervisorsDTOs);
                 }
             }
             catch (Exception ex)
             {
+                // Return an error response in case of failure
                 return new UserValidationResponse(false, $"Error fetching supervisors: {ex.Message}");
             }
         }
 
-        public async Task<UserValidationResponse> GetAllTeamLeadersAsync(int page, int pageSize, bool fetchAll = false)
+
+        public async Task<ValidationResponse> GetAllTeamLeadersAsync(int page, int pageSize, bool fetchAll = false)
         {
             try
             {
@@ -113,7 +117,7 @@ namespace WorkManagementPortal.Backend.Logic.Services
                         teamLeader.RoleName = teamLeadRole;
                     }
 
-                    return new UserValidationResponse(true, "All team leaders fetched successfully", 1, allTeamLeaders.Count, allTeamLeaders.Count, null, allTeamLeadersDTOs);
+                    return new UserValidationResponse(true, "All team leaders fetched successfully", null, allTeamLeadersDTOs);
                 }
                 else
                 {
@@ -126,7 +130,7 @@ namespace WorkManagementPortal.Backend.Logic.Services
                         teamLeader.RoleName = teamLeadRole;
                     }
 
-                    return new UserValidationResponse(true, "Team leaders fetched successfully", page, pageSize, paginatedResult.TotalCount, null, teamLeadersDTOs);
+                    return new UserValidationPaginatedResponse(true, "Team leaders fetched successfully", page, pageSize, paginatedResult.TotalCount, null, teamLeadersDTOs);
                 }
             }
             catch (Exception ex)
@@ -135,7 +139,7 @@ namespace WorkManagementPortal.Backend.Logic.Services
             }
         }
 
-        public async Task<UserValidationResponse> GetAllEmployeesAsync(int page, int pageSize, bool fetchAll = false)
+        public async Task<ValidationResponse> GetAllEmployeesAsync(int page, int pageSize, bool fetchAll = false)
         {
             try
             {
@@ -153,7 +157,7 @@ namespace WorkManagementPortal.Backend.Logic.Services
                         employee.RoleName = employeeRole;
                     }
 
-                    return new UserValidationResponse(true, "All employees fetched successfully", 1, allEmployees.Count, allEmployees.Count, null, allEmployeesDTOs);
+                    return new UserValidationResponse(true, "All employees fetched successfully", null, allEmployeesDTOs);
                 }
                 else
                 {
@@ -166,7 +170,7 @@ namespace WorkManagementPortal.Backend.Logic.Services
                         employee.RoleName = employeeRole;
                     }
 
-                    return new UserValidationResponse(true, "Employees fetched successfully", page, pageSize, paginatedResult.TotalCount, null, employeesDTOs);
+                    return new UserValidationPaginatedResponse(true, "Employees fetched successfully", page, pageSize, paginatedResult.TotalCount, null, employeesDTOs);
                 }
             }
             catch (Exception ex)
@@ -175,7 +179,7 @@ namespace WorkManagementPortal.Backend.Logic.Services
             }
         }
 
-        public async Task<UserValidationResponse> GetAllSupervisorsAndTheirTeamLeadersAsync(int page, int pageSize, bool fetchAll = false)
+        public async Task<ValidationResponse> GetAllSupervisorsAndTheirTeamLeadersAsync(int page, int pageSize, bool fetchAll = false)
         {
             try
             {
@@ -200,7 +204,7 @@ namespace WorkManagementPortal.Backend.Logic.Services
                         supervisor.TeamLeader.RoleName = UserRoles.TeamLead.ToString();
                     }
 
-                    return new UserValidationResponse(true, "All supervisors and their team leaders fetched successfully", 1, allSupervisorsWithTeamLeaders.Count, allSupervisorsWithTeamLeaders.Count, null, allSupervisorsWithTeamLeadersDTOs);
+                    return new UserValidationResponse(true, "All supervisors and their team leaders fetched successfully", null, allSupervisorsWithTeamLeadersDTOs);
                 }
                 else
                 {
@@ -215,7 +219,7 @@ namespace WorkManagementPortal.Backend.Logic.Services
                         supervisor.TeamLeader.RoleName = UserRoles.TeamLead.ToString();
                     }
 
-                    return new UserValidationResponse(true, "Supervisors and their team leaders fetched successfully", page, pageSize, paginatedResult.TotalCount, null, supervisorsWithTeamLeadersDTOs);
+                    return new UserValidationPaginatedResponse(true, "Supervisors and their team leaders fetched successfully", page, pageSize, paginatedResult.TotalCount, null, supervisorsWithTeamLeadersDTOs);
                 }
             }
             catch (Exception ex)
@@ -224,7 +228,7 @@ namespace WorkManagementPortal.Backend.Logic.Services
             }
         }
 
-        public async Task<UserValidationResponse> GetAllEmployeesAndTheirSupervisorsAsync(int page, int pageSize, bool fetchAll = false)
+        public async Task<ValidationResponse> GetAllEmployeesAndTheirSupervisorsAsync(int page, int pageSize, bool fetchAll = false)
         {
             try
             {
@@ -249,7 +253,7 @@ namespace WorkManagementPortal.Backend.Logic.Services
                         employee.Supervisor.RoleName = UserRoles.Supervisor.ToString();
                     }
 
-                    return new UserValidationResponse(true, "All employees and their supervisors fetched successfully", 1, allEmployeesWithSupervisors.Count, allEmployeesWithSupervisors.Count, null, allEmployeesWithSupervisorsDTOs);
+                    return new UserValidationResponse(true, "All employees and their supervisors fetched successfully", null, allEmployeesWithSupervisorsDTOs);
                 }
                 else
                 {
@@ -264,7 +268,7 @@ namespace WorkManagementPortal.Backend.Logic.Services
                         employee.Supervisor.RoleName = UserRoles.Supervisor.ToString();
                     }
 
-                    return new UserValidationResponse(true, "Employees and their supervisors fetched successfully", page, pageSize, paginatedResult.TotalCount, null, employeesWithSupervisorsDTOs);
+                    return new UserValidationPaginatedResponse(true, "Employees and their supervisors fetched successfully", page, pageSize, paginatedResult.TotalCount, null, employeesWithSupervisorsDTOs);
                 }
             }
             catch (Exception ex)
@@ -273,7 +277,7 @@ namespace WorkManagementPortal.Backend.Logic.Services
             }
         }
 
-        public async Task<UserValidationResponse> GetAllEmployeesWithSupervisorsAndTeamLeadsAsync(int page, int pageSize, bool fetchAll = false)
+        public async Task<ValidationResponse> GetAllEmployeesWithSupervisorsAndTeamLeadsAsync(int page, int pageSize, bool fetchAll = false)
         {
             try
             {
@@ -305,7 +309,7 @@ namespace WorkManagementPortal.Backend.Logic.Services
                         employee.TeamLeader.RoleName = UserRoles.TeamLead.ToString();
                     }
 
-                    return new UserValidationResponse(true, "All employees with supervisors and team leads fetched successfully", 1, allEmployeesWithSupervisorsAndTeamLeads.Count, allEmployeesWithSupervisorsAndTeamLeads.Count, null, allEmployeesDTOs);
+                    return new UserValidationResponse(true, "All employees with supervisors and team leads fetched successfully", null, allEmployeesDTOs);
                 }
                 else
                 {
@@ -321,7 +325,7 @@ namespace WorkManagementPortal.Backend.Logic.Services
                         employee.TeamLeader.RoleName = UserRoles.TeamLead.ToString();
                     }
 
-                    return new UserValidationResponse(true, "Employees with supervisors and team leads fetched successfully", page, pageSize, paginatedResult.TotalCount, null, employeesDTOs);
+                    return new UserValidationPaginatedResponse(true, "Employees with supervisors and team leads fetched successfully", page, pageSize, paginatedResult.TotalCount, null, employeesDTOs);
                 }
             }
             catch (Exception ex)

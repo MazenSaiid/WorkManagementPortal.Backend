@@ -10,6 +10,7 @@ using WorkManagementPortal.Backend.Infrastructure.Dtos.User;
 using WorkManagementPortal.Backend.Infrastructure.Models;
 using WorkManagementPortal.Backend.Logic.Interfaces;
 using WorkManagementPortal.Backend.Logic.Responses;
+using WorkManagementPortal.Backend.Logic.Responses.PaginatedResponses;
 using WorkManagementPortal.Backend.Logic.Services;
 
 namespace WorkManagementPortal.Backend.API.Controllers
@@ -66,9 +67,6 @@ namespace WorkManagementPortal.Backend.API.Controllers
                     return Ok(new UserValidationResponse(
                         success: true,
                         message: "All users fetched successfully",
-                        currentPage: 1,
-                        pageSize: users.Count(),
-                        totalCount: users.Count(),
                         null,
                         users: usersDTOs
                     ));
@@ -81,7 +79,7 @@ namespace WorkManagementPortal.Backend.API.Controllers
                     // Check if there are any users
                     if (!paginatedResult.Items.Any())
                     {
-                        return NotFound(new UserValidationResponse(false, "No Users found", page, pageSize, 0));
+                        return NotFound(new UserValidationResponse(false, "No Users found"));
                     }
 
                     // Convert to DTOs and map user roles
@@ -102,7 +100,7 @@ namespace WorkManagementPortal.Backend.API.Controllers
                     }
 
                     // Return the paginated response
-                    return Ok(new UserValidationResponse(
+                    return Ok(new UserValidationPaginatedResponse(
                         success: true,
                         message: "All users fetched successfully",
                         currentPage: page,
@@ -143,7 +141,7 @@ namespace WorkManagementPortal.Backend.API.Controllers
                 {
                     userDTO.RoleName = "No Role";
                 }
-                return Ok(new UserValidationResponse(true, "User fetched successfully", default, default, default, null, new List<UserDto> { userDTO }));
+                return Ok(new UserValidationResponse(true, "User fetched successfully", null, new List<UserDto> { userDTO }));
             }
             catch (Exception ex)
             {

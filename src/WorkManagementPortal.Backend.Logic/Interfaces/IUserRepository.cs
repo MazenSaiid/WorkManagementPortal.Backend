@@ -11,12 +11,12 @@ namespace WorkManagementPortal.Backend.Logic.Interfaces
 {
     public interface IUserRepository :IGenericRepository<User,string>
     {
-        Task<UserValidationResponse> GetAllSupervisorsAsync(int page, int pageSize, bool fetchAll = false);
-        Task<UserValidationResponse> GetAllTeamLeadersAsync(int page, int pageSize, bool fetchAll = false);
-        Task<UserValidationResponse> GetAllEmployeesAsync(int page, int pageSize, bool fetchAll = false);
-        Task<UserValidationResponse> GetAllSupervisorsAndTheirTeamLeadersAsync(int page, int pageSize, bool fetchAll = false);
-        Task<UserValidationResponse> GetAllEmployeesAndTheirSupervisorsAsync(int page, int pageSize, bool fetchAll = false);
-        Task<UserValidationResponse> GetAllEmployeesWithSupervisorsAndTeamLeadsAsync(int page, int pageSize, bool fetchAll = false);
+        Task<ValidationResponse> GetAllSupervisorsAsync(int page, int pageSize, bool fetchAll = false);
+        Task<ValidationResponse> GetAllTeamLeadersAsync(int page, int pageSize, bool fetchAll = false);
+        Task<ValidationResponse> GetAllEmployeesAsync(int page, int pageSize, bool fetchAll = false);
+        Task<ValidationResponse> GetAllSupervisorsAndTheirTeamLeadersAsync(int page, int pageSize, bool fetchAll = false);
+        Task<ValidationResponse> GetAllEmployeesAndTheirSupervisorsAsync(int page, int pageSize, bool fetchAll = false);
+        Task<ValidationResponse> GetAllEmployeesWithSupervisorsAndTeamLeadsAsync(int page, int pageSize, bool fetchAll = false);
         Task<List<User>> GetEmployeesBySupervisorIdAsync(string supervisorId);
         Task<List<User>> GetEmployeesByTeamLeaderIdAsync(string teamLeaderId);
         Task<bool> UpdateUserRolesAsync(User existingUser, UpdateUserDto entity);

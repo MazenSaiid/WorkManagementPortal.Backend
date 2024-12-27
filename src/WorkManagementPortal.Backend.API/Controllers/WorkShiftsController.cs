@@ -30,23 +30,41 @@ namespace WorkManagementPortal.Backend.API.Controllers
         // Fetching all work shifts
         [HttpGet]
         [Route("GetAllWorkShifts")]
-        public async Task<IActionResult> GetAllWorkShifts(int page = 1, int pageSize=20)
+        public async Task<IActionResult> GetAllWorkShifts(int page = 1, int pageSize=20, bool fetchAll= false)
         {
             try
             {
-                var workShifts = await _workShiftRepository.GetAllAsync(page, pageSize);
-                if (!workShifts.Items.Any())
+                if (fetchAll)
                 {
-                    return NotFound(new WorkShiftValidationRepsonse(false, "No work shifts found"));
-                }
+                    var workShifts = await _workShiftRepository.GetAllAsync();
+                    if (!workShifts.Any())
+                    {
+                        return NotFound(new WorkShiftValidationRepsonse(false, "No work shifts found"));
+                    }
 
-                var result = _mapper.Map<IEnumerable<ListWorkShiftDto>>(workShifts.Items);
-                return Ok(new WorkShiftValidationRepsonse(true, "All work shifts fetched successfully",
-                    currentPage: page,
-                    pageSize: pageSize,
-                    totalCount: workShifts.TotalCount,
-                    null, 
-                    result));
+                    var result = _mapper.Map<IEnumerable<ListWorkShiftDto>>(workShifts);
+                    return Ok(new WorkShiftValidationRepsonse(true, "All work shifts fetched successfully",
+                        null,
+                        result));
+                }
+                else
+                {
+                    var workShifts = await _workShiftRepository.GetAllAsync(page, pageSize);
+                    if (!workShifts.Items.Any())
+                    {
+                        return NotFound(new WorkShiftValidationRepsonse(false, "No work shifts found"));
+                    }
+
+                    var result = _mapper.Map<IEnumerable<ListWorkShiftDto>>(workShifts.Items);
+                    return Ok(new WorkShiftValidationPaginatedRepsonse(true, "All work shifts fetched successfully",
+                        currentPage: page,
+                        pageSize: pageSize,
+                        totalCount: workShifts.TotalCount,
+                        null,
+                        result));
+
+                }
+                
             }
             catch (Exception ex)
             {
@@ -85,7 +103,7 @@ namespace WorkManagementPortal.Backend.API.Controllers
                     return NotFound(new UserValidationResponse(false, "Work shift not found"));
                 }
                 var result = _mapper.Map<ListWorkShiftDto>(workShift);
-                return Ok(new WorkShiftValidationRepsonse(true, "Work shift fetched successfully", default, default, default, null, new List<ListWorkShiftDto> { result }));
+                return Ok(new WorkShiftValidationRepsonse(true, "Work shift fetched successfully", null, new List<ListWorkShiftDto> { result }));
             }
             catch (Exception ex)
             {
