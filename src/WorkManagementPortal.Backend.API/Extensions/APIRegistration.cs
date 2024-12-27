@@ -13,6 +13,7 @@ namespace WorkManagementPortal.Backend.API.Extensions
             services.AddAutoMapper(Assembly.GetExecutingAssembly());
             //
             services.AddScoped(typeof(IGenericRepository<,>), typeof(GenericRepository<,>));
+            services.AddScoped(typeof(IPaginationHelper<>), typeof(PaginationHelper<>));
             services.AddScoped<IAccountRepository, AccountRepository>();
             services.AddScoped<IUserRepository, UserRepository>();
             services.AddScoped<INotificationRepository, NotificationRepository>();

@@ -1,4 +1,5 @@
 ﻿using AutoMapper;
+using Azure;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
@@ -9,6 +10,7 @@ using WorkManagementPortal.Backend.Infrastructure.Dtos.User;
 using WorkManagementPortal.Backend.Infrastructure.Models;
 using WorkManagementPortal.Backend.Logic.Interfaces;
 using WorkManagementPortal.Backend.Logic.Responses;
+using WorkManagementPortal.Backend.Logic.Services;
 
 namespace WorkManagementPortal.Backend.API.Controllers
 {
@@ -20,7 +22,7 @@ namespace WorkManagementPortal.Backend.API.Controllers
         private readonly IMapper _mapper;
         private readonly RoleManager<IdentityRole> _roleManager;
         private readonly UserManager<User> _userManager;
-
+        
         public UsersController(IUserRepository userRepository, UserManager<User> userManager, RoleManager<IdentityRole> roleManager, IMapper mapper)
         {
             _roleManager = roleManager;
@@ -28,120 +30,90 @@ namespace WorkManagementPortal.Backend.API.Controllers
             _mapper = mapper;
             _userRepository = userRepository;
         }
-
-        // Get all supervisors
-        [HttpGet("Supervisors")]
-        public async Task<IActionResult> GetAllSupervisors()
-        {
-            var response = await _userRepository.GetAllSupervisorsAsync();
-
-            if (response.Success)
-            {
-                return Ok(response);
-            }
-
-            return BadRequest(response);
-        }
-
-        // Get all team leaders
-        [HttpGet("TeamLeaders")]
-        public async Task<IActionResult> GetAllTeamLeaders()
-        {
-            var response = await _userRepository.GetAllTeamLeadersAsync();
-
-            if (response.Success)
-            {
-                return Ok(response);
-            }
-
-            return BadRequest(response);
-        }
-
-        // Get all employees (excluding supervisors and team leaders)
-        [HttpGet("Employees")]
-        public async Task<IActionResult> GetAllEmployees()
-        {
-            var response = await _userRepository.GetAllEmployeesAsync();
-
-            if (response.Success)
-            {
-                return Ok(response);
-            }
-
-            return BadRequest(response);
-        }
-
-        // Get all supervisors and their team leaders
-        [HttpGet("SupervisorsAndTeamLeaders")]
-        public async Task<IActionResult> GetAllSupervisorsAndTheirTeamLeaders()
-        {
-            var response = await _userRepository.GetAllSupervisorsAndTheirTeamLeadersAsync();
-
-            if (response.Success)
-            {
-                return Ok(response);
-            }
-
-            return BadRequest(response);
-        }
-
-        // Get all employees and their supervisors
-        [HttpGet("EmployeesAndSupervisors")]
-        public async Task<IActionResult> GetAllEmployeesAndTheirSupervisors()
-        {
-            var response = await _userRepository.GetAllEmployeesAndTheirSupervisorsAsync();
-
-            if (response.Success)
-            {
-                return Ok(response);
-            }
-
-            return BadRequest(response);
-        }
-        // Get all employees and their supervisors
-        [HttpGet("EmployeesAndTheirHeads")]
-        public async Task<IActionResult> GetAllEmployeesAndHeads()
-        {
-            var response = await _userRepository.GetAllEmployeesAndHeadsAsync();
-
-            if (response.Success)
-            {
-                return Ok(response);
-            }
-
-            return BadRequest(response);
-        }
         // Fetching all users)
         [HttpGet]
         [Route("GetAllUsers")]
-        public async Task<IActionResult> GetAllUsers()
+        public async Task<IActionResult> GetAllUsers(int page = 1, int pageSize = 20, bool fetchAll = false)
         {
             try
             {
-                var users = await _userRepository.GetAllAsync();
-                if (!users.Any())
+                if (fetchAll)
                 {
-                    return NotFound(new UserValidationResponse(false, " No Users found"));
-                }
-                List<UserDto> usersDTOs = new List<UserDto>();
-                foreach (var user in users)
-                {
+                    // Fetch all users from the repository
+                    var users = await _userRepository.GetAllAsync();
+                    if (!users.Any())
+                    {
+                        return NotFound(new UserValidationResponse(false, " No Users found"));
+                    }
+                    List<UserDto> usersDTOs = new List<UserDto>();
+                    foreach (var user in users)
+                    {
 
-                    var usersDTO = _mapper.Map<UserDto>(user);
-                    // Get the roles for the user
-                    var roles = await _userManager.GetRolesAsync(user);
+                        var usersDTO = _mapper.Map<UserDto>(user);
+                        // Get the roles for the user
+                        var roles = await _userManager.GetRolesAsync(user);
                         if (roles.Any())
                         {
-                        usersDTO.RoleName = roles.FirstOrDefault(); 
-                        usersDTOs.Add(usersDTO);
+                            usersDTO.RoleName = roles.FirstOrDefault();
+                            usersDTOs.Add(usersDTO);
                         }
                         else
                         {
-                        usersDTO.RoleName = "No Role";
+                            usersDTO.RoleName = "No Role";
                         }
-                    
+                        usersDTOs.Add(usersDTO);
+                    }
+                    return Ok(new UserValidationResponse(
+                        success: true,
+                        message: "All users fetched successfully",
+                        currentPage: 1,
+                        pageSize: users.Count(),
+                        totalCount: users.Count(),
+                        null,
+                        users: usersDTOs
+                    ));
                 }
-                    return Ok(new UserValidationResponse(true, "All users fetched successfully", usersDTOs));
+                else
+                {
+                    // Fetch paginated users from the repository
+                    var paginatedResult = await _userRepository.GetAllAsync(page, pageSize);
+
+                    // Check if there are any users
+                    if (!paginatedResult.Items.Any())
+                    {
+                        return NotFound(new UserValidationResponse(false, "No Users found", page, pageSize, 0));
+                    }
+
+                    // Convert to DTOs and map user roles
+                    List<UserDto> usersDTOs = new List<UserDto>();
+                    foreach (var user in paginatedResult.Items)
+                    {
+                        var usersDTO = _mapper.Map<UserDto>(user);
+                        var roles = await _userManager.GetRolesAsync(user);
+                        if (roles.Any())
+                        {
+                            usersDTO.RoleName = roles.FirstOrDefault();
+                        }
+                        else
+                        {
+                            usersDTO.RoleName = "No Role";
+                        }
+                        usersDTOs.Add(usersDTO);
+                    }
+
+                    // Return the paginated response
+                    return Ok(new UserValidationResponse(
+                        success: true,
+                        message: "All users fetched successfully",
+                        currentPage: page,
+                        pageSize: pageSize,
+                        totalCount: paginatedResult.TotalCount,
+                        null,
+                        users: usersDTOs
+                    ));
+
+                }
+                
             }
             catch (Exception ex)
             {
@@ -149,7 +121,7 @@ namespace WorkManagementPortal.Backend.API.Controllers
             }
         }
 
-        // Example of GET by id
+        // GET by id
         [HttpGet]
         [Route("GetUserById/{id}")]
         public async Task<IActionResult> GetUserById(string id)
@@ -171,7 +143,7 @@ namespace WorkManagementPortal.Backend.API.Controllers
                 {
                     userDTO.RoleName = "No Role";
                 }
-                return Ok(new UserValidationResponse(true, "User fetched successfully", new List<UserDto> { userDTO }));
+                return Ok(new UserValidationResponse(true, "User fetched successfully", default, default, default, null, new List<UserDto> { userDTO }));
             }
             catch (Exception ex)
             {
@@ -179,7 +151,7 @@ namespace WorkManagementPortal.Backend.API.Controllers
             }
         }
 
-        // Example of PUT (updating an existing user)
+        // PUT (updating an existing user)
         [HttpPut]
         [Route("UpdateUser/{id}")]
         public async Task<IActionResult> UpdateUser(string id, [FromBody] UpdateUserDto entity)
@@ -197,21 +169,21 @@ namespace WorkManagementPortal.Backend.API.Controllers
                     return NotFound();
                 }
                 // Update roles
-                var roleUpdateResult = await UpdateUserRolesAsync(existingUser, entity);
+                var roleUpdateResult = await _userRepository.UpdateUserRolesAsync(existingUser, entity);
                 if (!roleUpdateResult)
                 {
                     return BadRequest("Invalid role.");
                 }
 
                 // Validate and assign supervisor/team leader
-                var supervisorTeamLeaderResult = await ValidateAndAssignSupervisorAndTeamLeaderAsync(existingUser, id, entity);
+                var supervisorTeamLeaderResult = await _userRepository.ValidateAndAssignSupervisorAndTeamLeaderAsync(existingUser, id, entity);
                 if (!supervisorTeamLeaderResult)
                 {
                     return BadRequest("Invalid supervisor or team leader ID.");
                 }
                 existingUser.UserName = string.Concat(entity.FirstName, ".", entity.LastName);
                 _mapper.Map(entity, existingUser);
-                await  _userManager.UpdateAsync(existingUser);
+                await _userManager.UpdateAsync(existingUser);
                 return Ok(new UserValidationResponse(true, "User updated successfully"));
             }
             catch (Exception ex)
@@ -220,20 +192,52 @@ namespace WorkManagementPortal.Backend.API.Controllers
             }
         }
 
-        // Example of DELETE (removing a user)
+        // DELETE (removing a user)
         [HttpDelete]
         [Route("DeleteUser/{id}")]
         public async Task<IActionResult> DeleteUser(string id)
         {
             try
             {
+                // Get the user by ID
                 var user = await _userRepository.GetByIdAsync(id);
                 if (user == null)
                 {
-                    return NotFound();
+                    return NotFound(new UserValidationResponse(false, "User not found"));
                 }
 
-                await _userRepository.DeleteAsync(id); // Deletes the user
+                // Check if the user is an employee (has both SupervisorId and TeamLeaderId)
+                if (!string.IsNullOrEmpty(user.SupervisorId) && !string.IsNullOrEmpty(user.TeamLeaderId))
+                {
+                    await _userRepository.DeleteAsync(id); // Delete the employee
+                    return Ok(new UserValidationResponse(true, "User deleted successfully"));
+                }
+
+                // Check if the user is a supervisor (has TeamLeaderId but no SupervisorId)
+                if (!string.IsNullOrEmpty(user.TeamLeaderId) && string.IsNullOrEmpty(user.SupervisorId))
+                {
+                    // Check if the supervisor has employees under them
+                    var employeesUnderSupervisor = await _userRepository.GetEmployeesBySupervisorIdAsync(user.Id);
+                    if (employeesUnderSupervisor.Any())
+                    {
+                        return BadRequest(new UserValidationResponse(false, "Cannot delete this supervisor as there are employees under them"));
+                    }
+                }
+
+                // Check if the user is a team leader (has neither SupervisorId nor TeamLeaderId)
+                if (string.IsNullOrEmpty(user.SupervisorId) && string.IsNullOrEmpty(user.TeamLeaderId))
+                {
+                    // Team leaders can be deleted without restriction unless they are still referenced as a SupervisorId or TeamLeaderId
+                    var employeesUnderTeamLeaderCheck = await _userRepository.GetEmployeesByTeamLeaderIdAsync(user.Id);
+                    var employeesUnderSupervisorCheck = await _userRepository.GetEmployeesBySupervisorIdAsync(user.Id);
+
+                    if (employeesUnderTeamLeaderCheck.Any() || employeesUnderSupervisorCheck.Any())
+                    {
+                        return BadRequest(new UserValidationResponse(false, "Cannot delete this team leader as there are supervisors under them"));
+                    }
+                }
+                // Proceed with deletion if no references exist
+                await _userRepository.DeleteAsync(id);
                 return Ok(new UserValidationResponse(true, "User deleted successfully"));
             }
             catch (Exception ex)
@@ -241,91 +245,99 @@ namespace WorkManagementPortal.Backend.API.Controllers
                 return StatusCode(500, $"Internal server error: {ex.Message}");
             }
         }
-        // Private method to update the user's roles
-        private async Task<bool> UpdateUserRolesAsync(User existingUser, UpdateUserDto entity)
+
+        // Get all supervisors
+        [HttpGet("Supervisors")]
+        public async Task<IActionResult> GetAllSupervisorsPaginated(int page = 1, int pageSize = 20, bool fetchAll = false)
         {
-            // Update the roles if RoleName is provided
-            if (!string.IsNullOrEmpty(entity.RoleName))
+            var response = await _userRepository.GetAllSupervisorsAsync(page,pageSize,fetchAll);
+
+            if (response.Success)
             {
-                // Validate if the role exists
-                var allRoles = await _roleManager.Roles.ToListAsync();
-                if (!allRoles.Any(r => r.Name == entity.RoleName))
-                {
-                    return false; // Invalid role
-                }
-
-                // Get the current roles of the user
-                var currentRoles = await _userManager.GetRolesAsync(existingUser);
-
-                // Add the new role if it's not already assigned
-                if (!currentRoles.Contains(entity.RoleName))
-                {
-                    await _userManager.AddToRoleAsync(existingUser, entity.RoleName);
-                }
-
-                // Remove any roles the user should not have anymore
-                foreach (var currentRole in currentRoles)
-                {
-                    if (currentRole != entity.RoleName)
-                    {
-                        await _userManager.RemoveFromRoleAsync(existingUser, currentRole);
-                    }
-                }
+                return Ok(response);
             }
 
-            return true; // Roles updated successfully
+            return BadRequest(response);
         }
 
-        // Private method to validate and assign supervisor and team leader
-        private async Task<bool> ValidateAndAssignSupervisorAndTeamLeaderAsync(User existingUser, string id, UpdateUserDto entity)
+        // Get all team leaders
+        [HttpGet("TeamLeaders")]
+        public async Task<IActionResult> GetAllTeamLeadersPaginated(int page = 1, int pageSize = 20, bool fetchAll = false)
         {
-            // 1. Validate SupervisorId if provided (It should exist in the database)
-            if (!string.IsNullOrEmpty(entity.SupervisorId))
-            {
-                var supervisorExists = await _userManager.FindByIdAsync(entity.SupervisorId);
-                if (supervisorExists == null)
-                {
-                    return false; // Invalid Supervisor ID
-                }
+            var response = await _userRepository.GetAllTeamLeadersAsync(page,pageSize,fetchAll);
 
-                // Ensure user cannot assign themselves as their own supervisor
-                if (entity.SupervisorId == id)
-                {
-                    return false; // A user cannot be their own supervisor
-                }
-                existingUser.SupervisorId = entity.SupervisorId;
-                var usersAssignedToSupervisor = await _userManager.Users.Where(t => t.SupervisorId == id).ToListAsync();
-                foreach (var user in usersAssignedToSupervisor)
-                {
-                    user.SupervisorId = entity.SupervisorId;
-                }
+            if (response.Success)
+            {
+                return Ok(response);
             }
 
-            // 2. Validate TeamLeaderId if provided (It should exist in the database)
-            if (!string.IsNullOrEmpty(entity.TeamLeaderId))
-            {
-                var teamLeaderExists = await _userManager.FindByIdAsync(entity.TeamLeaderId);
-                if (teamLeaderExists == null)
-                {
-                    return false; // Invalid Team Leader ID
-                }
-
-                // Ensure user cannot assign themselves as their own team leader
-                if (entity.TeamLeaderId == id)
-                {
-                    return false; // A user cannot be their own team leader
-                }
-
-                existingUser.TeamLeaderId = entity.TeamLeaderId;
-                var usersAssignedToTeamLeader = await _userManager.Users.Where(t => t.TeamLeaderId == id).ToListAsync();
-                foreach (var user in usersAssignedToTeamLeader)
-                {
-                    user.TeamLeaderId = entity.TeamLeaderId;
-                }
-            }
-
-            return true; // Supervisor and Team Leader IDs validated and assigned successfully
+            return BadRequest(response);
         }
+
+        // Get all employees (excluding supervisors and team leaders)
+        [HttpGet("Employees")]
+        public async Task<IActionResult> GetAllEmployeesPaginated(int page = 1, int pageSize = 20, bool fetchAll = false)
+        {
+            var response = await _userRepository.GetAllEmployeesAsync(page,pageSize,fetchAll);
+
+            if (response.Success)
+            {
+                return Ok(response);
+            }
+
+            return BadRequest(response);
+        }
+
+        // Get all supervisors and their team leaders
+        [HttpGet("SupervisorsAndTeamLeaders")]
+        public async Task<IActionResult> GetAllSupervisorsAndTheirTeamLeadersPaginated(int page = 1, int pageSize = 20, bool fetchAll = false)
+        {
+            var response = await _userRepository.GetAllSupervisorsAndTheirTeamLeadersAsync(page,pageSize,fetchAll);
+
+            if (response.Success)
+            {
+                return Ok(response);
+            }
+
+            return BadRequest(response);
+        }
+
+        // Get all employees and their supervisors
+        [HttpGet("EmployeesAndSupervisors")]
+        public async Task<IActionResult> GetAllEmployeesAndTheirSupervisorsPaginated(int page = 1, int pageSize = 20, bool fetchAll = false)
+        {
+            var response = await _userRepository.GetAllEmployeesAndTheirSupervisorsAsync(page,pageSize,fetchAll);
+
+            if (response.Success)
+            {
+                return Ok(response);
+            }
+
+            return BadRequest(response);
+        }
+
+        [HttpGet]
+        [Route("EmployeesWithSupervisorsAndTeamLeadsAsync")]
+        public async Task<IActionResult> GetAlEmployeesWithSupervisorsAndTeamLeadsAsync(int page = 1, int pageSize = 20, bool fetchAll = false)
+        {
+            try
+            {
+                var response = await _userRepository.GetAllEmployeesWithSupervisorsAndTeamLeadsAsync(page, pageSize,fetchAll);
+
+                if (response.Success)
+                {
+                    return Ok(response);
+                }
+
+                return BadRequest(response);
+
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, $"Error fetching all users: {ex.Message}");
+            }
+        }
+
     }
 
 }

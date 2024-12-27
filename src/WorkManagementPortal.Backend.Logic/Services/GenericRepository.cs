@@ -16,10 +16,11 @@ namespace WorkManagementPortal.Backend.Logic.Services
     public class GenericRepository<T, TKey> : IGenericRepository<T, TKey> where T : class
     {
         private readonly ApplicationDbContext _context;
-
-        public GenericRepository(ApplicationDbContext context)
+        private readonly IPaginationHelper<T> _paginationHelper;
+        public GenericRepository(IPaginationHelper<T> paginationHelper, ApplicationDbContext context)
         {
             _context = context;
+            _paginationHelper = paginationHelper;
         }
 
         public async Task AddAsync(T entity)
@@ -38,8 +39,20 @@ namespace WorkManagementPortal.Backend.Logic.Services
             }
         }
 
+        public async Task<PagedResult<T>> GetAllAsync(int page, int pageSize)
+        {
+            // Work with IQueryable<T> to allow efficient pagination
+            var query = _context.Set<T>().AsNoTracking();
+
+            // Get the paginated result
+            var paginatedResult = await _paginationHelper.GetPagedResult(query, page, pageSize);
+
+            // Return the paginated result
+            return paginatedResult;
+        }
+
         public async Task<IEnumerable<T>> GetAllAsync() =>
-           await _context.Set<T>().AsNoTracking().ToListAsync();
+            await _context.Set<T>().AsNoTracking().ToListAsync();
 
 
         public async Task<T> GetByIdAsync(TKey id)

@@ -9,9 +9,9 @@ using WorkManagementPortal.Backend.Logic.Interfaces;
 
 namespace WorkManagementPortal.Backend.Logic.Services
 {
-    public class WorkShiftRepository : GenericRepository<WorkShift, int>, IWorkShiftRepository
+    public class ScreenShotRepository : GenericRepository<ScreenShotTrackingLog, int>, IScreenShotRepository
     {
-        public WorkShiftRepository(IPaginationHelper<WorkShift> paginationHelper, ApplicationDbContext context) : base(paginationHelper, context)
+        public ScreenShotRepository(IPaginationHelper<ScreenShotTrackingLog> paginationHelper, ApplicationDbContext context) : base(paginationHelper, context)
         {
         }
     }

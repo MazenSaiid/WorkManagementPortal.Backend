@@ -8,6 +8,7 @@ using System.Text;
 using System.Threading.Tasks;
 using WorkManagementPortal.Backend.API.Dtos.User;
 using WorkManagementPortal.Backend.Infrastructure.Context;
+using WorkManagementPortal.Backend.Infrastructure.Dtos.User;
 using WorkManagementPortal.Backend.Infrastructure.Enums;
 using WorkManagementPortal.Backend.Infrastructure.Models;
 using WorkManagementPortal.Backend.Logic.Interfaces;
@@ -21,41 +22,72 @@ namespace WorkManagementPortal.Backend.Logic.Services
         private readonly ApplicationDbContext _context;
         private readonly RoleManager<IdentityRole> _roleManager;
         private readonly UserManager<User> _userManager;
+        private readonly IPaginationHelper<User> _paginationHelper;
 
-
-        public UserRepository(ApplicationDbContext context, UserManager<User> userManager, RoleManager<IdentityRole> roleManager, IMapper mapper)
-            : base(context)
+        public UserRepository(IPaginationHelper<User> paginationHelper, ApplicationDbContext context,UserManager<User> userManager, RoleManager<IdentityRole> roleManager, IMapper mapper) : base(paginationHelper, context)
         {
             _mapper = mapper;
             _context = context;
             _roleManager = roleManager;
             _userManager = userManager;
+            _paginationHelper = paginationHelper;
         }
 
         // Helper method to get users by role
-        private async Task<List<User>> GetUsersByRoleAsync(string roleName)
+        private IQueryable<User> GetUsersByRole(string roleName)
         {
-            var role = await _roleManager.FindByNameAsync(roleName);
+            // Get the role from RoleManager
+            var role = _roleManager.FindByNameAsync(roleName).Result; // Synchronously fetch the role
             if (role == null)
             {
                 throw new Exception($"{roleName} role not found");
             }
 
-            return (await _userManager.GetUsersInRoleAsync(role.Name)).ToList();
+            // Use IdentityUserRole to get users for this role
+            var userRoles = _context.Set<IdentityUserRole<string>>()
+                                    .Where(ur => ur.RoleId == role.Id)
+                                    .Select(ur => ur.UserId); // Get the userIds for this role
+
+            // Query the users by the role's userIds
+            return _userManager.Users.Where(u => userRoles.Contains(u.Id));
         }
 
-        public async Task<UserValidationResponse> GetAllSupervisorsAsync()
+        public async Task<UserValidationResponse> GetAllSupervisorsAsync(int page, int pageSize, bool fetchAll = false)
         {
             try
             {
                 var supervisorRole = UserRoles.Supervisor.ToString();
-                var supervisors = await GetUsersByRoleAsync(supervisorRole);
-                var supervisorsDTOs = _mapper.Map<IEnumerable<UserDto>>(supervisors);
-                foreach (var supervisor in supervisorsDTOs)
+
+                // Get the list of users with the supervisor role
+                var supervisors = GetUsersByRole(supervisorRole);
+
+                if (fetchAll)
                 {
-                    supervisor.RoleName = supervisorRole;  
+                    // If fetchAll is true, we get all supervisors without pagination
+                    var allSupervisors = supervisors.ToList();
+                    var allSupervisorsDTOs = _mapper.Map<IEnumerable<UserDto>>(allSupervisors);
+
+                    foreach (var supervisor in allSupervisorsDTOs)
+                    {
+                        supervisor.RoleName = supervisorRole;
+                    }
+
+                    return new UserValidationResponse(true, "All supervisors fetched successfully", 1, allSupervisors.Count, allSupervisors.Count, null, allSupervisorsDTOs);
                 }
-                return new UserValidationResponse(true, "Supervisors fetched successfully", supervisorsDTOs);
+                else
+                {
+                    // Otherwise, paginate as usual
+                    var paginatedResult = await _paginationHelper.GetPagedResult(supervisors, page, pageSize);
+
+                    var supervisorsDTOs = _mapper.Map<IEnumerable<UserDto>>(paginatedResult.Items);
+
+                    foreach (var supervisor in supervisorsDTOs)
+                    {
+                        supervisor.RoleName = supervisorRole;
+                    }
+
+                    return new UserValidationResponse(true, "Supervisors fetched successfully", page, pageSize, paginatedResult.TotalCount, null, supervisorsDTOs);
+                }
             }
             catch (Exception ex)
             {
@@ -63,18 +95,39 @@ namespace WorkManagementPortal.Backend.Logic.Services
             }
         }
 
-        public async Task<UserValidationResponse> GetAllTeamLeadersAsync()
+        public async Task<UserValidationResponse> GetAllTeamLeadersAsync(int page, int pageSize, bool fetchAll = false)
         {
             try
             {
                 var teamLeadRole = UserRoles.TeamLead.ToString();
-                var teamLeaders = await GetUsersByRoleAsync(teamLeadRole);
-                var teamLeadersDTOs = _mapper.Map<IEnumerable<UserDto>>(teamLeaders);
-                foreach (var teamLeader in teamLeadersDTOs)
+                var teamLeaders = GetUsersByRole(teamLeadRole);
+
+                if (fetchAll)
                 {
-                    teamLeader.RoleName = teamLeadRole;
+                    // Fetch all team leaders without pagination
+                    var allTeamLeaders = teamLeaders.ToList();
+                    var allTeamLeadersDTOs = _mapper.Map<IEnumerable<UserDto>>(allTeamLeaders);
+
+                    foreach (var teamLeader in allTeamLeadersDTOs)
+                    {
+                        teamLeader.RoleName = teamLeadRole;
+                    }
+
+                    return new UserValidationResponse(true, "All team leaders fetched successfully", 1, allTeamLeaders.Count, allTeamLeaders.Count, null, allTeamLeadersDTOs);
                 }
-                return new UserValidationResponse(true, "Team leaders fetched successfully", teamLeadersDTOs);
+                else
+                {
+                    // Apply pagination
+                    var paginatedResult = await _paginationHelper.GetPagedResult(teamLeaders, page, pageSize);
+                    var teamLeadersDTOs = _mapper.Map<IEnumerable<UserDto>>(paginatedResult.Items);
+
+                    foreach (var teamLeader in teamLeadersDTOs)
+                    {
+                        teamLeader.RoleName = teamLeadRole;
+                    }
+
+                    return new UserValidationResponse(true, "Team leaders fetched successfully", page, pageSize, paginatedResult.TotalCount, null, teamLeadersDTOs);
+                }
             }
             catch (Exception ex)
             {
@@ -82,18 +135,39 @@ namespace WorkManagementPortal.Backend.Logic.Services
             }
         }
 
-        public async Task<UserValidationResponse> GetAllEmployeesAsync()
+        public async Task<UserValidationResponse> GetAllEmployeesAsync(int page, int pageSize, bool fetchAll = false)
         {
             try
             {
                 var employeeRole = UserRoles.Employee.ToString();
-                var employees = await GetUsersByRoleAsync(employeeRole);
-                var employeesDTOs = _mapper.Map<IEnumerable<UserDto>>(employees);
-                foreach (var employee in employeesDTOs)
+                var employees = GetUsersByRole(employeeRole);
+
+                if (fetchAll)
                 {
-                    employee.RoleName = employeeRole;
+                    // Fetch all employees without pagination
+                    var allEmployees = employees.ToList();
+                    var allEmployeesDTOs = _mapper.Map<IEnumerable<UserDto>>(allEmployees);
+
+                    foreach (var employee in allEmployeesDTOs)
+                    {
+                        employee.RoleName = employeeRole;
+                    }
+
+                    return new UserValidationResponse(true, "All employees fetched successfully", 1, allEmployees.Count, allEmployees.Count, null, allEmployeesDTOs);
                 }
-                return new UserValidationResponse(true, "Employees fetched successfully", employeesDTOs);
+                else
+                {
+                    // Apply pagination
+                    var paginatedResult = await _paginationHelper.GetPagedResult(employees, page, pageSize);
+                    var employeesDTOs = _mapper.Map<IEnumerable<UserDto>>(paginatedResult.Items);
+
+                    foreach (var employee in employeesDTOs)
+                    {
+                        employee.RoleName = employeeRole;
+                    }
+
+                    return new UserValidationResponse(true, "Employees fetched successfully", page, pageSize, paginatedResult.TotalCount, null, employeesDTOs);
+                }
             }
             catch (Exception ex)
             {
@@ -101,21 +175,48 @@ namespace WorkManagementPortal.Backend.Logic.Services
             }
         }
 
-        public async Task<UserValidationResponse> GetAllSupervisorsAndTheirTeamLeadersAsync()
+        public async Task<UserValidationResponse> GetAllSupervisorsAndTheirTeamLeadersAsync(int page, int pageSize, bool fetchAll = false)
         {
             try
             {
-                var supervisorsWithTeamLeaders = await _context.Users
-                    .Where(u => u.TeamLeaderId != null && u.SupervisorId == null) 
-                    .Include(u => u.TeamLeader)
-                    .ToListAsync();
-                var supervisorsWithTeamLeadersDTOs = _mapper.Map<IEnumerable<UserDto>>(supervisorsWithTeamLeaders);
-                foreach (var supervisor in supervisorsWithTeamLeadersDTOs)
+                // Query the users with TeamLeaderId and SupervisorId condition without eager loading
+                var supervisorsWithTeamLeadersQuery = _context.Users
+                    .Where(u => u.TeamLeaderId != null && u.SupervisorId == null)
+                    .Join(_context.Users, u => u.TeamLeaderId, tl => tl.Id, (supervisor, teamLeader) => new
+                    {
+                        Supervisor = supervisor,
+                        TeamLeader = teamLeader
+                    });
+
+                if (fetchAll)
                 {
-                    supervisor.RoleName = UserRoles.Supervisor.ToString();
-                    supervisor.TeamLeader.RoleName = UserRoles.TeamLead.ToString();
+                    // Fetch all supervisors and their team leaders without pagination
+                    var allSupervisorsWithTeamLeaders = supervisorsWithTeamLeadersQuery.ToList();
+                    var allSupervisorsWithTeamLeadersDTOs = _mapper.Map<IEnumerable<UserDto>>(allSupervisorsWithTeamLeaders.Select(x => x.Supervisor));
+
+                    foreach (var supervisor in allSupervisorsWithTeamLeadersDTOs)
+                    {
+                        supervisor.RoleName = UserRoles.Supervisor.ToString();
+                        supervisor.TeamLeader.RoleName = UserRoles.TeamLead.ToString();
+                    }
+
+                    return new UserValidationResponse(true, "All supervisors and their team leaders fetched successfully", 1, allSupervisorsWithTeamLeaders.Count, allSupervisorsWithTeamLeaders.Count, null, allSupervisorsWithTeamLeadersDTOs);
                 }
-                return new UserValidationResponse(true, "Supervisors and their team leaders fetched successfully", supervisorsWithTeamLeadersDTOs);
+                else
+                {
+                    // Apply pagination
+                    var paginatedResult = await _paginationHelper.GetPagedResult(supervisorsWithTeamLeadersQuery, page, pageSize);
+
+                    var supervisorsWithTeamLeadersDTOs = _mapper.Map<IEnumerable<UserDto>>(paginatedResult.Items.Select(x => x.Supervisor));
+
+                    foreach (var supervisor in supervisorsWithTeamLeadersDTOs)
+                    {
+                        supervisor.RoleName = UserRoles.Supervisor.ToString();
+                        supervisor.TeamLeader.RoleName = UserRoles.TeamLead.ToString();
+                    }
+
+                    return new UserValidationResponse(true, "Supervisors and their team leaders fetched successfully", page, pageSize, paginatedResult.TotalCount, null, supervisorsWithTeamLeadersDTOs);
+                }
             }
             catch (Exception ex)
             {
@@ -123,48 +224,209 @@ namespace WorkManagementPortal.Backend.Logic.Services
             }
         }
 
-        public async Task<UserValidationResponse> GetAllEmployeesAndTheirSupervisorsAsync()
+        public async Task<UserValidationResponse> GetAllEmployeesAndTheirSupervisorsAsync(int page, int pageSize, bool fetchAll = false)
         {
             try
             {
-                var employeesWithSupervisors = await _context.Users
+                // Query employees with SupervisorId and TeamLeaderId condition without eager loading
+                var employeesWithSupervisorsQuery = _context.Users
                     .Where(u => u.SupervisorId != null && u.TeamLeaderId != null)
-                    .Include(u => u.Supervisor)
-                    .ToListAsync();
-                var employeesWithSupervisorsDTOs = _mapper.Map<IEnumerable<UserDto>>(employeesWithSupervisors);
-                foreach (var employee in employeesWithSupervisorsDTOs)
+                    .Join(_context.Users, u => u.SupervisorId, sup => sup.Id, (employee, supervisor) => new
+                    {
+                        Employee = employee,
+                        Supervisor = supervisor
+                    });
+
+                if (fetchAll)
                 {
-                    employee.RoleName = UserRoles.Employee.ToString();
-                    employee.Supervisor.RoleName = UserRoles.Supervisor.ToString();
+                    // Fetch all employees and their supervisors without pagination
+                    var allEmployeesWithSupervisors = employeesWithSupervisorsQuery.ToList();
+                    var allEmployeesWithSupervisorsDTOs = _mapper.Map<IEnumerable<UserDto>>(allEmployeesWithSupervisors.Select(x => x.Employee));
+
+                    foreach (var employee in allEmployeesWithSupervisorsDTOs)
+                    {
+                        employee.RoleName = UserRoles.Employee.ToString();
+                        employee.Supervisor.RoleName = UserRoles.Supervisor.ToString();
+                    }
+
+                    return new UserValidationResponse(true, "All employees and their supervisors fetched successfully", 1, allEmployeesWithSupervisors.Count, allEmployeesWithSupervisors.Count, null, allEmployeesWithSupervisorsDTOs);
                 }
-                return new UserValidationResponse(true, "Employees and their supervisors fetched successfully", employeesWithSupervisorsDTOs);
+                else
+                {
+                    // Apply pagination
+                    var paginatedResult = await _paginationHelper.GetPagedResult(employeesWithSupervisorsQuery, page, pageSize);
+
+                    var employeesWithSupervisorsDTOs = _mapper.Map<IEnumerable<UserDto>>(paginatedResult.Items.Select(x => x.Employee));
+
+                    foreach (var employee in employeesWithSupervisorsDTOs)
+                    {
+                        employee.RoleName = UserRoles.Employee.ToString();
+                        employee.Supervisor.RoleName = UserRoles.Supervisor.ToString();
+                    }
+
+                    return new UserValidationResponse(true, "Employees and their supervisors fetched successfully", page, pageSize, paginatedResult.TotalCount, null, employeesWithSupervisorsDTOs);
+                }
             }
             catch (Exception ex)
             {
                 return new UserValidationResponse(false, $"Error fetching employees and their supervisors: {ex.Message}");
             }
         }
-        public async Task<UserValidationResponse> GetAllEmployeesAndHeadsAsync()
+
+        public async Task<UserValidationResponse> GetAllEmployeesWithSupervisorsAndTeamLeadsAsync(int page, int pageSize, bool fetchAll = false)
         {
             try
             {
-                var employeesWithHeads = await _context.Users
+                // Query employees with SupervisorId and TeamLeaderId condition without eager loading
+                var employeesWithSupervisorsAndTeamLeadsQuery = _context.Users
                     .Where(u => u.SupervisorId != null && u.TeamLeaderId != null)
-                    .Include(u => u.Supervisor).Include(u=>u.TeamLeader)
-                    .ToListAsync();
-                var employeesDTOs = _mapper.Map<IEnumerable<UserDto>>(employeesWithHeads);
-                foreach (var employee in employeesDTOs)
+                    .Join(_context.Users, u => u.SupervisorId, sup => sup.Id, (employee, supervisor) => new
+                    {
+                        Employee = employee,
+                        Supervisor = supervisor
+                    })
+                    .Join(_context.Users, x => x.Employee.TeamLeaderId, tl => tl.Id, (employeeWithSupervisor, teamLeader) => new
+                    {
+                        Employee = employeeWithSupervisor.Employee,
+                        Supervisor = employeeWithSupervisor.Supervisor,
+                        TeamLeader = teamLeader
+                    });
+
+                if (fetchAll)
                 {
-                    employee.RoleName = UserRoles.Employee.ToString();
-                    employee.Supervisor.RoleName = UserRoles.Supervisor.ToString();
-                    employee.TeamLeader.RoleName = UserRoles.TeamLead.ToString();
+                    // Fetch all employees, supervisors, and team leads without pagination
+                    var allEmployeesWithSupervisorsAndTeamLeads = employeesWithSupervisorsAndTeamLeadsQuery.ToList();
+                    var allEmployeesDTOs = _mapper.Map<IEnumerable<UserDto>>(allEmployeesWithSupervisorsAndTeamLeads.Select(x => x.Employee));
+
+                    foreach (var employee in allEmployeesDTOs)
+                    {
+                        employee.RoleName = UserRoles.Employee.ToString();
+                        employee.Supervisor.RoleName = UserRoles.Supervisor.ToString();
+                        employee.TeamLeader.RoleName = UserRoles.TeamLead.ToString();
+                    }
+
+                    return new UserValidationResponse(true, "All employees with supervisors and team leads fetched successfully", 1, allEmployeesWithSupervisorsAndTeamLeads.Count, allEmployeesWithSupervisorsAndTeamLeads.Count, null, allEmployeesDTOs);
                 }
-                return new UserValidationResponse(true, "Employees fetched successfully", employeesDTOs);
+                else
+                {
+                    // Apply pagination
+                    var paginatedResult = await _paginationHelper.GetPagedResult(employeesWithSupervisorsAndTeamLeadsQuery, page, pageSize);
+
+                    var employeesDTOs = _mapper.Map<IEnumerable<UserDto>>(paginatedResult.Items.Select(x => x.Employee));
+
+                    foreach (var employee in employeesDTOs)
+                    {
+                        employee.RoleName = UserRoles.Employee.ToString();
+                        employee.Supervisor.RoleName = UserRoles.Supervisor.ToString();
+                        employee.TeamLeader.RoleName = UserRoles.TeamLead.ToString();
+                    }
+
+                    return new UserValidationResponse(true, "Employees with supervisors and team leads fetched successfully", page, pageSize, paginatedResult.TotalCount, null, employeesDTOs);
+                }
             }
             catch (Exception ex)
             {
-                return new UserValidationResponse(false, $"Error fetching employees: {ex.Message}");
+                return new UserValidationResponse(false, $"Error fetching employees with supervisors and team leads: {ex.Message}");
             }
+        }
+
+        public async Task<List<User>> GetEmployeesBySupervisorIdAsync(string supervisorId)
+        {
+            return await _context.Users
+                .Where(u => u.SupervisorId == supervisorId)
+                .ToListAsync();
+        }
+
+        public async Task<List<User>> GetEmployeesByTeamLeaderIdAsync(string teamLeaderId)
+        {
+            return await _context.Users
+                .Where(u => u.TeamLeaderId == teamLeaderId)
+                .ToListAsync();
+        }
+        // Method to update the user's roles
+        public async Task<bool> UpdateUserRolesAsync(User existingUser, UpdateUserDto entity)
+        {
+            // Update the roles if RoleName is provided
+            if (!string.IsNullOrEmpty(entity.RoleName))
+            {
+                // Validate if the role exists
+                var allRoles = await _roleManager.Roles.ToListAsync();
+                if (!allRoles.Any(r => r.Name == entity.RoleName))
+                {
+                    return false; // Invalid role
+                }
+
+                // Get the current roles of the user
+                var currentRoles = await _userManager.GetRolesAsync(existingUser);
+
+                // Add the new role if it's not already assigned
+                if (!currentRoles.Contains(entity.RoleName))
+                {
+                    await _userManager.AddToRoleAsync(existingUser, entity.RoleName);
+                }
+
+                // Remove any roles the user should not have anymore
+                foreach (var currentRole in currentRoles)
+                {
+                    if (currentRole != entity.RoleName)
+                    {
+                        await _userManager.RemoveFromRoleAsync(existingUser, currentRole);
+                    }
+                }
+            }
+
+            return true; // Roles updated successfully
+        }
+
+        // Method to validate and assign supervisor and team leader
+        public async Task<bool> ValidateAndAssignSupervisorAndTeamLeaderAsync(User existingUser, string id, UpdateUserDto entity)
+        {
+            // 1. Validate SupervisorId if provided (It should exist in the database)
+            if (!string.IsNullOrEmpty(entity.SupervisorId))
+            {
+                var supervisorExists = await _userManager.FindByIdAsync(entity.SupervisorId);
+                if (supervisorExists == null)
+                {
+                    return false; // Invalid Supervisor ID
+                }
+
+                // Ensure user cannot assign themselves as their own supervisor
+                if (entity.SupervisorId == id)
+                {
+                    return false; // A user cannot be their own supervisor
+                }
+                existingUser.SupervisorId = entity.SupervisorId;
+                var usersAssignedToSupervisor = await _userManager.Users.Where(t => t.SupervisorId == id).ToListAsync();
+                foreach (var user in usersAssignedToSupervisor)
+                {
+                    user.SupervisorId = entity.SupervisorId;
+                }
+            }
+
+            // 2. Validate TeamLeaderId if provided (It should exist in the database)
+            if (!string.IsNullOrEmpty(entity.TeamLeaderId))
+            {
+                var teamLeaderExists = await _userManager.FindByIdAsync(entity.TeamLeaderId);
+                if (teamLeaderExists == null)
+                {
+                    return false; // Invalid Team Leader ID
+                }
+
+                // Ensure user cannot assign themselves as their own team leader
+                if (entity.TeamLeaderId == id)
+                {
+                    return false; // A user cannot be their own team leader
+                }
+
+                existingUser.TeamLeaderId = entity.TeamLeaderId;
+                var usersAssignedToTeamLeader = await _userManager.Users.Where(t => t.TeamLeaderId == id).ToListAsync();
+                foreach (var user in usersAssignedToTeamLeader)
+                {
+                    user.TeamLeaderId = entity.TeamLeaderId;
+                }
+            }
+
+            return true; // Supervisor and Team Leader IDs validated and assigned successfully
         }
 
     }

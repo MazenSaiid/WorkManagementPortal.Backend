@@ -69,7 +69,7 @@ namespace WorkManagementPortal.Backend.API.Controllers
 
         // Method to get all screenshots for a user on a specific date
         [HttpGet("GetScreenshotsForAllUsers")]
-        public async Task<IActionResult> GetScreenshotsForAllUsers([FromQuery] DateTime date)
+        public async Task<IActionResult> GetScreenshotsForAllUsers([FromQuery] DateTime date )
         {
             try
             {
@@ -132,7 +132,7 @@ namespace WorkManagementPortal.Backend.API.Controllers
 
         // Method to get all screenshots for a user on a specific date
         [HttpGet("GetScreenshotsForUser")]
-        public async Task<IActionResult> GetScreenshotsForUser([FromQuery] string userId, [FromQuery] DateTime date)
+        public async Task<IActionResult> GetScreenshotsForUser([FromQuery] string userId, [FromQuery] DateTime date )
         {
             try
             {

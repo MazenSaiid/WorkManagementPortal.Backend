@@ -14,6 +14,7 @@ namespace WorkManagementPortal.Backend.Logic.Interfaces
             Task AddAsync(T entity);
             Task UpdateAsync( T entityToUpdate, T entity);
             Task DeleteAsync(TKey id);
+            Task<PagedResult<T>> GetAllAsync(int page, int pageSize);
             Task<IEnumerable<T>> GetAllAsync();
             Task<T> GetByIdAsync(TKey id);
         }
