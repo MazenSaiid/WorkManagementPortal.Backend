@@ -9,6 +9,7 @@ using System.Threading.Tasks;
 using WorkManagementPortal.Backend.API.Dtos.User;
 using WorkManagementPortal.Backend.Infrastructure.Context;
 using WorkManagementPortal.Backend.Infrastructure.Dtos.User;
+using WorkManagementPortal.Backend.Infrastructure.Dtos.WorkShift;
 using WorkManagementPortal.Backend.Infrastructure.Enums;
 using WorkManagementPortal.Backend.Infrastructure.Models;
 using WorkManagementPortal.Backend.Logic.Interfaces;
@@ -282,7 +283,7 @@ namespace WorkManagementPortal.Backend.Logic.Services
             try
             {
                 // Query employees with SupervisorId and TeamLeaderId condition without eager loading
-                var employeesWithSupervisorsAndTeamLeadsQuery = _context.Users
+                var employeesWithSupervisorsAndTeamLeadsQuery = _context.Users.Include(u=>u.WorkShift)
                     .Where(u => u.SupervisorId != null && u.TeamLeaderId != null)
                     .Join(_context.Users, u => u.SupervisorId, sup => sup.Id, (employee, supervisor) => new
                     {
@@ -307,6 +308,7 @@ namespace WorkManagementPortal.Backend.Logic.Services
                         employee.RoleName = UserRoles.Employee.ToString();
                         employee.Supervisor.RoleName = UserRoles.Supervisor.ToString();
                         employee.TeamLeader.RoleName = UserRoles.TeamLead.ToString();
+                        employee.WorkShift = _mapper.Map<ListWorkShiftDto>(employee.WorkShift);
                     }
 
                     return new UserValidationResponse(true, "All employees with supervisors and team leads fetched successfully", null, allEmployeesDTOs);
@@ -323,6 +325,7 @@ namespace WorkManagementPortal.Backend.Logic.Services
                         employee.RoleName = UserRoles.Employee.ToString();
                         employee.Supervisor.RoleName = UserRoles.Supervisor.ToString();
                         employee.TeamLeader.RoleName = UserRoles.TeamLead.ToString();
+                        employee.WorkShift = _mapper.Map<ListWorkShiftDto>(employee.WorkShift);
                     }
 
                     return new UserValidationPaginatedResponse(true, "Employees with supervisors and team leads fetched successfully", page, pageSize, paginatedResult.TotalCount, null, employeesDTOs);
@@ -333,6 +336,51 @@ namespace WorkManagementPortal.Backend.Logic.Services
                 return new UserValidationResponse(false, $"Error fetching employees with supervisors and team leads: {ex.Message}");
             }
         }
+        public async Task<ValidationResponse> GetAbsentEmployeesAsync(DateTime? date, int page, int pageSize, bool fetchAll = false)
+        {
+            try
+            {
+                if (!date.HasValue)
+                {
+                    return new UserValidationResponse(false, "Date is required.");
+                }
+
+                var dateValue = date.Value;
+                var startOfDay = dateValue.Date;
+                var endOfDay = dateValue.Date.AddDays(1).AddTicks(-1);
+
+                var nonAdminAndManagersUsers = _userManager.Users.Include(u => u.WorkShift)
+                    .Where(user => (user.WorkShift != null));
+
+                // Query for users who do not have a WorkTrackingLog for the given date
+                var absentEmployeesQuery = nonAdminAndManagersUsers
+                    .Where(user => !_context.WorkTrackingLogs
+                        .Any(log => log.UserId == user.Id && log.WorkTimeStart >= startOfDay && log.WorkTimeEnd <= endOfDay));
+
+                if (fetchAll)
+                {
+                    // Fetch all absent employees without pagination
+                    var allAbsentEmployees = absentEmployeesQuery.ToList();
+                    var allAbsentEmployeesDTOs = _mapper.Map<IEnumerable<UserDto>>(allAbsentEmployees);
+
+                    return new UserValidationResponse(true, "All absent employees fetched successfully", null, allAbsentEmployeesDTOs);
+                }
+                else
+                {
+                    // Apply pagination
+                    var paginatedResult = await _paginationHelper.GetPagedResult(absentEmployeesQuery.AsQueryable(), page, pageSize);
+
+                    var absentEmployeesDTOs = _mapper.Map<IEnumerable<UserDto>>(paginatedResult.Items);
+
+                    return new UserValidationPaginatedResponse(true, "Absent employees fetched successfully", page, pageSize, paginatedResult.TotalCount, null, absentEmployeesDTOs);
+                }
+            }
+            catch (Exception ex)
+            {
+                return new UserValidationResponse(false, $"Error fetching absent employees: {ex.Message}");
+            }
+        }
+
 
         public async Task<List<User>> GetEmployeesBySupervisorIdAsync(string supervisorId)
         {

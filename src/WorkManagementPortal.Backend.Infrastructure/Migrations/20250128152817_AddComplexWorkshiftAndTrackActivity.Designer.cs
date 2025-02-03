@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using WorkManagementPortal.Backend.Infrastructure.Context;
 
@@ -11,9 +12,11 @@ using WorkManagementPortal.Backend.Infrastructure.Context;
 namespace WorkManagementPortal.Backend.Infrastructure.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20250128152817_AddComplexWorkshiftAndTrackActivity")]
+    partial class AddComplexWorkshiftAndTrackActivity
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -392,6 +395,9 @@ namespace WorkManagementPortal.Backend.Infrastructure.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
+                    b.Property<TimeOnly>("EndTime")
+                        .HasColumnType("time");
+
                     b.Property<bool>("IsComplex")
                         .HasColumnType("bit");
 
@@ -401,6 +407,9 @@ namespace WorkManagementPortal.Backend.Infrastructure.Migrations
 
                     b.Property<int>("ShiftType")
                         .HasColumnType("int");
+
+                    b.Property<TimeOnly>("StartTime")
+                        .HasColumnType("time");
 
                     b.HasKey("Id");
 

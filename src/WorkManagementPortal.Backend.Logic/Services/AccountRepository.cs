@@ -7,6 +7,7 @@ using System;
 using System.Collections.Generic;
 using System.IdentityModel.Tokens.Jwt;
 using System.Linq;
+using System.Net;
 using System.Security.Claims;
 using System.Text;
 using System.Threading.Tasks;
@@ -62,7 +63,7 @@ namespace WorkManagementPortal.Backend.Logic.Services
                     TeamLeaderId = !string.IsNullOrEmpty(model.TeamLeaderId) ? model.TeamLeaderId : null,
                     WorkShiftId = model.WorkShiftId > 0  ? model.WorkShiftId : null,
                 };
-                var result = await _userManager.CreateAsync(user, model.Password);
+                var result = await _userManager.CreateAsync(user, _configuration["DefaultPassword"]);
                 
                 if (result.Succeeded)
                 {
@@ -160,10 +161,15 @@ namespace WorkManagementPortal.Backend.Logic.Services
             // Generate a password reset token
             var token = await _userManager.GeneratePasswordResetTokenAsync(user);
 
-            // Send the token via email to the user (you need to implement email sending)
-            var resetLink = $"{_configuration["App:PasswordResetUrl"]}?token={token}&email={email}";
             // send an email to the user with the resetLink here.
-            await _notificationRepository.SendPasswordResetEmailAsync(email, resetLink);
+            // Generate the password reset link
+            var resetLink = $"{_configuration["App:PasswordResetUrl"]}?token={WebUtility.UrlEncode(token)}&email={WebUtility.UrlEncode(email)}";
+
+            // Load and replace placeholders in the HTML template
+            var htmlTemplate = await File.ReadAllTextAsync("Templates/ResetPasswordEmail.html");
+            var emailContent = htmlTemplate.Replace("{{resetLink}}", resetLink);
+
+            await _notificationRepository.SendPasswordResetEmailAsync(email, emailContent);
 
             return new ValidationResponse(true, "Password reset link has been sent to your email.");
         }

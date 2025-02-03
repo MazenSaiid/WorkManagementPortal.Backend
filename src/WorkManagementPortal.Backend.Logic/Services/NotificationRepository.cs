@@ -1,6 +1,9 @@
-﻿using System;
+﻿using Microsoft.Extensions.Configuration;
+using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Net.Mail;
+using System.Net;
 using System.Text;
 using System.Threading.Tasks;
 using WorkManagementPortal.Backend.Logic.Interfaces;
@@ -9,10 +12,35 @@ namespace WorkManagementPortal.Backend.Logic.Services
 {
     public class NotificationRepository : INotificationRepository
     {
-        public async Task SendPasswordResetEmailAsync(string email, string resetLink)
+        private readonly IConfiguration _configuration;
+        public NotificationRepository(IConfiguration configuration)
         {
-            // Implement email sending logic here (this could be via SMTP, SendGrid, etc.)
-            // For example, use an email service to send the resetLink to the user's email.
+            _configuration = configuration;
+        }
+        public async Task SendPasswordResetEmailAsync(string email, string htmlContent)
+        {
+            var smtpServer = _configuration["EmailSettings:SmtpServer"];
+            var smtpPort = int.Parse(_configuration["EmailSettings:SmtpPort"]);
+            var senderEmail = _configuration["EmailSettings:Email"];
+            var password = _configuration["EmailSettings:Password"];
+
+            using (var client = new SmtpClient(smtpServer, smtpPort))
+            {
+                client.Credentials = new NetworkCredential(senderEmail, password);
+                client.EnableSsl = true;
+
+                var mailMessage = new MailMessage
+                {
+                    From = new MailAddress(_configuration["EmailSettings:SenderEmail"], "Innovative BPO"), // Optional: Set the display name
+                    Subject = "Password Reset Request Mail",
+                    Body = htmlContent,
+                    IsBodyHtml = true
+                };
+
+                mailMessage.To.Add(email);
+
+                await client.SendMailAsync(mailMessage);
+            }
         }
     }
 }

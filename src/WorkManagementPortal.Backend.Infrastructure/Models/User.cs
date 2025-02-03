@@ -10,6 +10,7 @@ namespace WorkManagementPortal.Backend.Infrastructure.Models
 {
     public class User : IdentityUser
     {
+        public int EmployeeSerialNumber { get; set; }
         public string FirstName { get; set; } = string.Empty;
         public string LastName { get; set; } = string.Empty;
 
@@ -29,6 +30,8 @@ namespace WorkManagementPortal.Backend.Infrastructure.Models
         public WorkShift WorkShift { get; set; }
         public int? WorkShiftId { get; set; }
         public ICollection<ScreenShotTrackingLog> ScreenShotTrackingLogs { get; set; } = new HashSet<ScreenShotTrackingLog>();
+        public ICollection<LeaveEmployeeRequest> LeaveEmployeeRequests { get; set; } = new HashSet<LeaveEmployeeRequest>();
+        public ICollection<ApplicationActivityLog> ApplicationActivityLogs { get; set; } = new HashSet<ApplicationActivityLog>();
     }
 
 }

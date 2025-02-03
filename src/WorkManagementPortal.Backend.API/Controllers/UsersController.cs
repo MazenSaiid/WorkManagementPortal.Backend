@@ -7,6 +7,7 @@ using Microsoft.EntityFrameworkCore;
 using WorkManagementPortal.Backend.API.Dtos.User;
 using WorkManagementPortal.Backend.Infrastructure.Context;
 using WorkManagementPortal.Backend.Infrastructure.Dtos.User;
+using WorkManagementPortal.Backend.Infrastructure.Dtos.WorkShift;
 using WorkManagementPortal.Backend.Infrastructure.Models;
 using WorkManagementPortal.Backend.Logic.Interfaces;
 using WorkManagementPortal.Backend.Logic.Responses;
@@ -41,7 +42,7 @@ namespace WorkManagementPortal.Backend.API.Controllers
                 if (fetchAll)
                 {
                     // Fetch all users from the repository
-                    var users = await _userRepository.GetAllAsync();
+                    var users = await _userRepository.GetAllAsync(query => query.Include(x => x.WorkShift));
                     if (!users.Any())
                     {
                         return NotFound(new UserValidationResponse(false, " No Users found"));
@@ -74,7 +75,7 @@ namespace WorkManagementPortal.Backend.API.Controllers
                 else
                 {
                     // Fetch paginated users from the repository
-                    var paginatedResult = await _userRepository.GetAllAsync(page, pageSize);
+                    var paginatedResult = await _userRepository.GetAllAsync(page, pageSize, query => query.Include(x => x.WorkShift));
 
                     // Check if there are any users
                     if (!paginatedResult.Items.Any())
@@ -132,6 +133,7 @@ namespace WorkManagementPortal.Backend.API.Controllers
                     return NotFound(new UserValidationResponse(false, "User not found"));
                 }
                 var userDTO = _mapper.Map<UserDto>(user);
+                userDTO.WorkShift = _mapper.Map<ListWorkShiftDto>(user.WorkShift);
                 var roles = await _userManager.GetRolesAsync(user);
                 if (roles.Any())
                 {
@@ -244,9 +246,22 @@ namespace WorkManagementPortal.Backend.API.Controllers
             }
         }
 
+        // Get all Absent Users
+        [HttpGet("AbsentUsers")]
+        public async Task<IActionResult> GetAllAbsentUsers([FromQuery] DateTime date,int page = 1, int pageSize = 20, bool fetchAll = false)
+        {
+            var response = await _userRepository.GetAbsentEmployeesAsync(date ,page, pageSize, fetchAll);
+
+            if (response.Success)
+            {
+                return Ok(response);
+            }
+
+            return BadRequest(response);
+        }
         // Get all supervisors
         [HttpGet("Supervisors")]
-        public async Task<IActionResult> GetAllSupervisorsPaginated(int page = 1, int pageSize = 20, bool fetchAll = false)
+        public async Task<IActionResult> GetAllSupervisors(int page = 1, int pageSize = 20, bool fetchAll = false)
         {
             var response = await _userRepository.GetAllSupervisorsAsync(page,pageSize,fetchAll);
 
@@ -260,7 +275,7 @@ namespace WorkManagementPortal.Backend.API.Controllers
 
         // Get all team leaders
         [HttpGet("TeamLeaders")]
-        public async Task<IActionResult> GetAllTeamLeadersPaginated(int page = 1, int pageSize = 20, bool fetchAll = false)
+        public async Task<IActionResult> GetAllTeamLeaders(int page = 1, int pageSize = 20, bool fetchAll = false)
         {
             var response = await _userRepository.GetAllTeamLeadersAsync(page,pageSize,fetchAll);
 
@@ -274,7 +289,7 @@ namespace WorkManagementPortal.Backend.API.Controllers
 
         // Get all employees (excluding supervisors and team leaders)
         [HttpGet("Employees")]
-        public async Task<IActionResult> GetAllEmployeesPaginated(int page = 1, int pageSize = 20, bool fetchAll = false)
+        public async Task<IActionResult> GetAllEmployees(int page = 1, int pageSize = 20, bool fetchAll = false)
         {
             var response = await _userRepository.GetAllEmployeesAsync(page,pageSize,fetchAll);
 
@@ -288,7 +303,7 @@ namespace WorkManagementPortal.Backend.API.Controllers
 
         // Get all supervisors and their team leaders
         [HttpGet("SupervisorsAndTeamLeaders")]
-        public async Task<IActionResult> GetAllSupervisorsAndTheirTeamLeadersPaginated(int page = 1, int pageSize = 20, bool fetchAll = false)
+        public async Task<IActionResult> GetAllSupervisorsAndTheirTeamLeaders(int page = 1, int pageSize = 20, bool fetchAll = false)
         {
             var response = await _userRepository.GetAllSupervisorsAndTheirTeamLeadersAsync(page,pageSize,fetchAll);
 
@@ -302,7 +317,7 @@ namespace WorkManagementPortal.Backend.API.Controllers
 
         // Get all employees and their supervisors
         [HttpGet("EmployeesAndSupervisors")]
-        public async Task<IActionResult> GetAllEmployeesAndTheirSupervisorsPaginated(int page = 1, int pageSize = 20, bool fetchAll = false)
+        public async Task<IActionResult> GetAllEmployeesAndTheirSupervisors(int page = 1, int pageSize = 20, bool fetchAll = false)
         {
             var response = await _userRepository.GetAllEmployeesAndTheirSupervisorsAsync(page,pageSize,fetchAll);
 
@@ -315,8 +330,8 @@ namespace WorkManagementPortal.Backend.API.Controllers
         }
 
         [HttpGet]
-        [Route("EmployeesWithSupervisorsAndTeamLeadsAsync")]
-        public async Task<IActionResult> GetAlEmployeesWithSupervisorsAndTeamLeadsAsync(int page = 1, int pageSize = 20, bool fetchAll = false)
+        [Route("EmployeesWithSupervisorsAndTeamLeads")]
+        public async Task<IActionResult> GetEmployeesWithSupervisorsAndTeamLeads(int page = 1, int pageSize = 20, bool fetchAll = false)
         {
             try
             {

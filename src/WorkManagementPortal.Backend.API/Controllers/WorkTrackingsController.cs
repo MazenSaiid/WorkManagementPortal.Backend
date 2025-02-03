@@ -10,6 +10,7 @@ using System.Text.Json;
 using AutoMapper;
 using WorkManagementPortal.Backend.Infrastructure.Dtos.WorkLog;
 using WorkManagementPortal.Backend.Logic.Responses;
+using WorkManagementPortal.Backend.Logic.Interfaces;
 
 namespace WorkManagementPortal.Backend.API.Controllers
 {
@@ -17,11 +18,12 @@ namespace WorkManagementPortal.Backend.API.Controllers
     [ApiController]
     public class WorkTrackingsController : ControllerBase
     {
-        private readonly ApplicationDbContext _context;
+        private readonly IWorkTrackingRepository _workTrackingRepository;
         private readonly IMapper _mapper;
-        public WorkTrackingsController(ApplicationDbContext context, IMapper mapper)
+
+        public WorkTrackingsController(IWorkTrackingRepository workTrackingRepository, IMapper mapper)
         {
-            _context = context;
+            _workTrackingRepository = workTrackingRepository;
             _mapper = mapper;
         }
         [HttpGet]
@@ -31,7 +33,7 @@ namespace WorkManagementPortal.Backend.API.Controllers
             try
             {
                 // Get enum values from PauseType enum
-                var pauseTypes =  Enum.GetValues(typeof(PauseType))
+                var pauseTypes = Enum.GetValues(typeof(PauseType))
                                      .Cast<PauseType>()
                                      .Select(e => new { id = (int)e, name = e.ToString() })
                                      .ToList();
@@ -47,263 +49,184 @@ namespace WorkManagementPortal.Backend.API.Controllers
         [HttpPost("ClockIn")]
         public async Task<IActionResult> ClockIn([FromBody] string userId)
         {
-            if (string.IsNullOrEmpty(userId))
+            try
             {
-                return BadRequest("User ID cannot be null or empty.");
+                var response = await _workTrackingRepository.ClockInAsync(userId);
+                return Ok(response);
             }
-
-            var existingLog =await _context.WorkTrackingLogs
-                                      .FirstOrDefaultAsync(w => w.UserId == userId && (w.IsWorking == true || w.IsPaused == true));
-            if (existingLog != null)
+            catch (ArgumentException ex)
             {
-                return BadRequest("User is already already working.");
+                return BadRequest(ex.Message);
             }
-
-            var workLog = new WorkTrackingLog
+            catch (Exception ex)
             {
-                UserId = userId,
-                WorkTimeStart = DateTime.Now,
-                WorkDate = DateOnly.FromDateTime(DateTime.Now),
-                IsWorking = true,
-                IsPaused = false
-            };
-
-            await _context.WorkTrackingLogs.AddAsync(workLog);
-            await _context.SaveChangesAsync();
-            var result = _mapper.Map<WorkTrackingLogDTO>(workLog);
-
-            // Return WorkLogValidationResponse
-            var response = new WorkLogValidationResponse(true, "Clock in successful.", result);
-            return Ok(response);
+                return StatusCode(500, $"An error occurred : {ex.Message}, couldn't Clock in for User {userId}");
+            }
         }
 
         // Clock Out Method
         [HttpPost("ClockOut")]
         public async Task<IActionResult> ClockOut([FromBody] int workLogId)
         {
-            if (workLogId <= 0)
+            try
             {
-                return BadRequest("Invalid work log ID.");
-            }
-
-            var workLog = await _context.WorkTrackingLogs.FirstOrDefaultAsync(w => w.Id == workLogId);
-            if (workLog == null)
-            {
-                return NotFound("Work log not found.");
-            }
-
-            workLog.WorkTimeEnd = DateTime.Now;
-            workLog.IsWorking = false;
-            workLog.IsPaused = false;
-            workLog.HasFinished = true;
-
-            // Calculate total worked hours excluding pauses
-            var totalWorkedHours = (workLog.WorkTimeEnd - workLog.WorkTimeStart).TotalHours;
-
-            // Get pauses for the work log
-            var pauses = _context.PauseTrackingLogs.Where(p => p.WorkTrackingLogId == workLog.Id).ToList();
-            foreach (var pause in pauses)
-            {
-                if (!pause.PauseIsFinished)
+                if (workLogId <= 0)
                 {
-                    pause.PauseEnd = DateTime.Now;
-                    pause.PauseDurationInMinutes = (pause.PauseEnd - pause.PauseStart).TotalMinutes;
-                    pause.PauseIsFinished = true;  // Mark the pause as finished
+                    return BadRequest("Invalid work log ID.");
                 }
+                var response = await _workTrackingRepository.ClockOutAsync(workLogId);
+                return Ok(response);
+            }
+            catch (ArgumentException ex)
+            {
+                return BadRequest(ex.Message);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, $"An error occurred: {ex.Message},couldn't Clock Out for WorkLog {workLogId}");
             }
 
-            var totalPausedHours = pauses.Sum(p => p.PauseDurationInMinutes) / 60;
-            workLog.ActualWorkDurationInHours = totalWorkedHours - totalPausedHours;
-            await _context.SaveChangesAsync();
-            var result = _mapper.Map<WorkTrackingLogDTO>(workLog);
-
-            // Return WorkLogValidationResponse
-            var response = new WorkLogValidationResponse(true, "Clock out successful.", result);
-            return Ok(response);
         }
         // Start Pause Method with Switch Case for Pause Types
         [HttpPost("StartPause")]
         public async Task<IActionResult> StartPause([FromBody] StartPauseDto startPauseDto)
         {
-            if (startPauseDto.WorkLogId <= 0)
+
+            try
             {
-                return BadRequest("Invalid work logID.");
+                if (startPauseDto.WorkLogId <= 0)
+                {
+                    return BadRequest("Invalid work logID.");
+                }
+                var response = await _workTrackingRepository.StartPauseAsync(startPauseDto);
+                return Ok(response);
+            }
+            catch (ArgumentException ex)
+            {
+                return BadRequest(ex.Message);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, $"An error occurred: {ex.Message},couldn't Start Pause for WorkLog {startPauseDto.WorkLogId}");
             }
 
-            var workLog = await _context.WorkTrackingLogs.FirstOrDefaultAsync(w => w.Id == startPauseDto.WorkLogId);
-            if (workLog == null)
-            {
-                return NotFound("Work log not found or user has already clocked out.");
-            }
-
-            workLog.IsPaused = true;
-            workLog.IsWorking = false;
-
-            var pausedLog = new PauseTrackingLog
-            {
-                UserId = workLog.UserId,
-                WorkTrackingLogId = startPauseDto.WorkLogId,
-                WorkDate = DateOnly.FromDateTime(DateTime.Now),
-                PauseStart = DateTime.Now
-            };
-            // Handle Pause Logic
-            switch (startPauseDto.PauseType)
-            {
-                case (int)PauseType.Meeting:
-                    pausedLog.PauseType = PauseType.Meeting;
-                    break;
-                case (int)PauseType.Break:
-                    pausedLog.PauseType = PauseType.Break;
-                    break;
-                case (int)PauseType.InCall:
-                    pausedLog.PauseType = PauseType.InCall;
-                    break;
-                case (int)PauseType.Bathroom:
-                    pausedLog.PauseType = PauseType.Bathroom;
-                    break;
-                case (int)PauseType.Other:
-                    pausedLog.PauseType = PauseType.Other;
-                    break;
-                default:
-                    return BadRequest("Invalid pause type.");
-            }
-            await _context.PauseTrackingLogs.AddAsync(pausedLog);
-            await _context.SaveChangesAsync();
-
-            var result = _mapper.Map<PauseTrackingLogDTO>(pausedLog);
-
-            // Return PauseLogValidationResponse
-            var response = new PauseLogValidationResponse(true, "Pause started successfully.", result);
-            return Ok(response);
         }
 
         // End Pause Method with Resuming Work Hours Logic
         [HttpPost("EndPause")]
         public async Task<IActionResult> EndPause([FromBody] int workLogId)
         {
-            if (workLogId <= 0)
+
+            try
             {
-                return BadRequest("Invalid work logID.");
+                if (workLogId <= 0)
+                {
+                    return BadRequest("Invalid work logID.");
+                }
+                var response = await _workTrackingRepository.EndPauseAsync(workLogId);
+                return Ok(response);
             }
-
-            var pauseTracking = await _context.PauseTrackingLogs
-                .Include(p => p.WorkTrackingLog)
-                .FirstOrDefaultAsync(p => p.WorkTrackingLogId == workLogId);
-            if (pauseTracking == null)
+            catch (ArgumentException ex)
             {
-                return NotFound("Pause records not found.");
+                return BadRequest(ex.Message);
             }
-
-            pauseTracking.PauseEnd = DateTime.Now;
-            pauseTracking.PauseDurationInMinutes = (pauseTracking.PauseEnd - pauseTracking.PauseStart).TotalMinutes;
-            pauseTracking.PauseIsFinished = true;
-            pauseTracking.WorkTrackingLog.IsPaused = false;
-            pauseTracking.WorkTrackingLog.IsWorking = true;
-
-            await _context.SaveChangesAsync();
-
-            var result = _mapper.Map<PauseTrackingLogDTO>(pauseTracking);
-
-            // Return PauseLogValidationResponse
-            var response = new PauseLogValidationResponse(true, "Pause ended and work resumed successfully.", result);
-            return Ok(response);
+            catch (Exception ex)
+            {
+                return StatusCode(500, $"An error occurred: {ex.Message},couldn't End Pause for WorkLog {workLogId}");
+            }
         }
         // Get Finished Work Logs By Date
-        // Get Finished Work Logs By Date 
         [HttpGet("GetFinishedWorkLogs")]
         public async Task<IActionResult> GetFinishedWorkLogs(DateTime? date)
         {
             try
             {
                 // Ensure date is provided, otherwise return bad request
-                if (date == null)
+                if (date == null && !date.HasValue)
                 {
                     return BadRequest("Date is required.");
                 }
 
-                // Access the DateTime value after checking if date is not null
-                var dateValue = date.Value;
-
-                // Construct the end-of-day DateTime for the provided date
-                var endDateTime = dateValue.Date.Add(dateValue.TimeOfDay);
-
-                // Normalize the date to ensure correct filtering (we are only interested in the date part)
-                var startOfDay = dateValue.Date;
-
-                // Filter the work logs by the specified date and time
-                var finishedWorkLogs = await _context.WorkTrackingLogs
-                    .Where(w => w.HasFinished == true
-                                && w.WorkTimeStart >= startOfDay
-                                && w.WorkTimeEnd != default
-                                && w.WorkTimeEnd <= endDateTime)
-                    .ToListAsync();
-
-                // Construct the response
-                var response = new
-                {
-                    HasWorkLogs = finishedWorkLogs.Any(),
-                    Message = finishedWorkLogs.Any() ? "Finished work logs fetched successfully." : "No finished work logs found.",
-                    Count = finishedWorkLogs.Count(),
-                };
-
+                var response = await _workTrackingRepository.GetFinishedWorkLogsAsync(date);
                 return Ok(response);
             }
             catch (Exception ex)
             {
-                return StatusCode(500, $"Error fetching work logs: {ex.Message}");
+                return StatusCode(500, $"Error fetching finished work logs: {ex.Message}");
             }
         }
-
         // Get Paused Work Logs By Date
         [HttpGet("GetPausedWorkLogs")]
-        public async Task<IActionResult> GetPausedWorkLogs()
+        public async Task<IActionResult> GetPausedWorkLogs(DateTime? date)
         {
             try
             {
-                // Query the WorkTrackingLogs where the work is paused
-                var pausedWorkLogs = await _context.WorkTrackingLogs
-                                       .Where(w => w.IsPaused == true && w.WorkTimeEnd == default)
-                                       .ToListAsync();
-
-                // Construct the response
-                var response = new
+                // Ensure date is provided, otherwise return bad request
+                if (date == null && !date.HasValue)
                 {
-                    HasWorkLogs = pausedWorkLogs.Any(),
-                    Message = pausedWorkLogs.Any() ? "Paused work logs fetched successfully." : "No paused work logs found.",
-                    Count = pausedWorkLogs.Count()
-                };
-
+                    return BadRequest("Date is required.");
+                }
+                var response = await _workTrackingRepository.GetPausedWorkLogsAsync( date);
                 return Ok(response);
             }
             catch (Exception ex)
             {
-                return StatusCode(500, $"Error fetching work logs: {ex.Message}");
+                return StatusCode(500, $"Error fetching paused work logs: {ex.Message}");
             }
         }
         // Get Active Work Logs By Date
         [HttpGet("GetActiveWorkLogs")]
-        public async Task<IActionResult> GetActiveWorkLogs()
+        public async Task<IActionResult> GetActiveWorkLogs(DateTime? date)
         {
             try
             {
-                // Query the WorkTrackingLogs where the work is active
-                var activeWorkLogs = await _context.WorkTrackingLogs
-                                       .Where(w => w.IsWorking == true && w.WorkTimeEnd == default)
-                                       .ToListAsync();
-
-                // Construct the response
-                var response = new
+                // Ensure date is provided, otherwise return bad request
+                if (date == null && !date.HasValue)
                 {
-                    HasWorkLogs = activeWorkLogs.Any(),
-                    Message = activeWorkLogs.Any() ? "Active work logs fetched successfully." : "No active work logs found.",
-                    Count = activeWorkLogs.Count
-                };
-
+                    return BadRequest("Date is required.");
+                }
+                var response = await _workTrackingRepository.GetActiveWorkLogsAsync(date);
                 return Ok(response);
             }
             catch (Exception ex)
             {
-                return StatusCode(500, $"Error fetching work logs: {ex.Message}");
+                return StatusCode(500, $"Error fetching active work logs: {ex.Message}");
+            }
+        }
+        [HttpGet("GetLateCheckInWorkLogs")]
+        public async Task<IActionResult> GetLateCheckInWorkLogs(DateTime? date)
+        {
+            try
+            {
+                // Ensure date is provided, otherwise return bad request
+                if (date == null && !date.HasValue)
+                {
+                    return BadRequest("Date is required.");
+                }
+                var response = await _workTrackingRepository.GetLateCheckInWorkLogsAsync(date);
+                return Ok(response);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, $"Error fetching Late CheckIn work logs: {ex.Message}");
+            }
+        }
+        [HttpGet("GetEarlyCheckoutWorkLogs")]
+        public async Task<IActionResult> GetEarlyCheckoutWorkLogs(DateTime? date)
+        {
+            try
+            {
+                // Ensure date is provided, otherwise return bad request
+                if (date == null && !date.HasValue)
+                {
+                    return BadRequest("Date is required.");
+                }
+                var response = await _workTrackingRepository.GetEarlyCheckoutWorkLogsAsync(date);
+                return Ok(response);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, $"Error fetching Early Checkout work logs: {ex.Message}");
             }
         }
         // Get Work Logs by UserId and Date
@@ -316,26 +239,17 @@ namespace WorkManagementPortal.Backend.API.Controllers
                 {
                     return BadRequest("User ID cannot be null or empty.");
                 }
-
-                // Normalize the date to ensure correct filtering (we are only interested in the date part)
-                var startOfDay = date.Date;
-                var endOfDay = startOfDay.AddDays(1).AddTicks(-1);
-                // Query the WorkTrackingLogs based on the selected date and user
-                var workLog = await _context.WorkTrackingLogs
-                                       .Where(w => w.UserId == userId && w.WorkTimeStart >= startOfDay && w.WorkTimeEnd <= endOfDay)
-                                       .Include(w => w.PauseTrackingLogs).Include(w => w.User)
-                                       .FirstOrDefaultAsync();
-
-                if (workLog == null )
+                // Ensure date is provided, otherwise return bad request
+                if (date == null)
                 {
-                    return NotFound("No work logs found for the given date.");
+                    return BadRequest("Date is required.");
                 }
-
-                var result = _mapper.Map<WorkTrackingLogDTO>(workLog);
-
-                // Return WorkLogValidationResponse
-                var response = new WorkLogValidationResponse(true, "Work log fetched successfully.", result);
+                var response = await _workTrackingRepository.GetWorkLogsByDateAsync(userId, date);
                 return Ok(response);
+            }
+            catch (ArgumentException ex)
+            {
+                return BadRequest(ex.Message);
             }
             catch (Exception ex)
             {
@@ -343,5 +257,6 @@ namespace WorkManagementPortal.Backend.API.Controllers
             }
         }
 
-    }
+    } 
 }
+

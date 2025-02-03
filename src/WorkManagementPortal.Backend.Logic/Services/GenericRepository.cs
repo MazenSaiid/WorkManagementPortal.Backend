@@ -9,6 +9,7 @@ using System.Threading.Tasks;
 using WorkManagementPortal.Backend.Infrastructure.Context;
 using WorkManagementPortal.Backend.Infrastructure.Models;
 using WorkManagementPortal.Backend.Logic.Interfaces;
+using static Microsoft.EntityFrameworkCore.DbLoggerCategory;
 
 namespace WorkManagementPortal.Backend.Logic.Services
 {
@@ -38,25 +39,61 @@ namespace WorkManagementPortal.Backend.Logic.Services
                 await _context.SaveChangesAsync();
             }
         }
-
-        public async Task<PagedResult<T>> GetAllAsync(int page, int pageSize)
+        public async Task DeleteRangeAsync(IEnumerable<T> values)
         {
-            // Work with IQueryable<T> to allow efficient pagination
+          _context.Set<T>().RemoveRange(values);
+          await _context.SaveChangesAsync();
+        }
+
+        public async Task<PagedResult<T>> GetAllAsync(int page, int pageSize, Func<IQueryable<T>, IQueryable<T>> include = null)
+        {
+            // Start with the base query
             var query = _context.Set<T>().AsNoTracking();
+
+            // Apply the include
+            if (include != null)
+            {
+                query = include(query);
+            }
 
             // Get the paginated result
             var paginatedResult = await _paginationHelper.GetPagedResult(query, page, pageSize);
 
-            // Return the paginated result
             return paginatedResult;
         }
 
-        public async Task<IEnumerable<T>> GetAllAsync() =>
-            await _context.Set<T>().AsNoTracking().ToListAsync();
+        // Get All without Pagination and optional Include
+        public async Task<IEnumerable<T>> GetAllAsync(Func<IQueryable<T>, IQueryable<T>> include = null)
+        {
+            // Start with the base query
+            var query = _context.Set<T>().AsNoTracking();
 
+            // Apply the include (e.g., for eager loading) if it's provided
+            if (include != null)
+            {
+                query = include(query);
+            }
 
-        public async Task<T> GetByIdAsync(TKey id)
-        => await _context.Set<T>().FindAsync(id);
+            // Execute the query and return the results
+            return await query.ToListAsync();
+        }
+
+        public async Task<T> GetByIdAsync(TKey id) =>
+         await _context.Set<T>().FindAsync(id);
+
+        public async Task<T> GetByIdAsync(TKey id, Func<IQueryable<T>, IQueryable<T>> include = null)
+        {
+            IQueryable<T> query = _context.Set<T>();
+
+            // Apply eager loading includes if provided
+            if (include != null)
+            {
+                query = include(query);
+            }
+
+            return await query.FirstOrDefaultAsync(e => EF.Property<TKey>(e, "Id").Equals(id));
+        }
+
 
         public async Task UpdateAsync(T entityToUpdate, T updatedEntity)
         {

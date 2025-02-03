@@ -28,6 +28,7 @@ namespace WorkManagementPortal.Backend.Infrastructure.Configurations
                  .WithMany(ws => ws.Users)
                  .HasForeignKey(u => u.WorkShiftId)
                  .OnDelete(DeleteBehavior.SetNull);
+            builder.Property(u => u.EmployeeSerialNumber).IsRequired();
 
         }
     }

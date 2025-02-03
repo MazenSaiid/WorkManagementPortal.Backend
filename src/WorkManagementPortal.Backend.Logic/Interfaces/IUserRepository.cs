@@ -21,5 +21,6 @@ namespace WorkManagementPortal.Backend.Logic.Interfaces
         Task<List<User>> GetEmployeesByTeamLeaderIdAsync(string teamLeaderId);
         Task<bool> UpdateUserRolesAsync(User existingUser, UpdateUserDto entity);
         Task<bool> ValidateAndAssignSupervisorAndTeamLeaderAsync(User existingUser, string id, UpdateUserDto entity);
+        Task<ValidationResponse> GetAbsentEmployeesAsync(DateTime? date, int page, int pageSize, bool fetchAll = false);
     }
 }

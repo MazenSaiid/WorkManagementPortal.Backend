@@ -11,13 +11,14 @@ namespace WorkManagementPortal.Backend.Infrastructure.Models
         public int Id { get; set; }
         public string UserId { get; set; }  // Foreign Key to User
         public User User { get; set; }
-
         public DateOnly WorkDate { get; set; }
         public DateTime WorkTimeStart { get; set; }
         public DateTime WorkTimeEnd { get; set; }
         public bool HasFinished { get; set; }
         public bool IsWorking { get; set; }
         public bool IsPaused { get; set; }
+        public bool HasCheckedInLate { get; set; }
+        public bool HasCheckedOutAEarly { get; set; }
 
         // Navigation property to PauseTrackingLogs
         public ICollection<PauseTrackingLog> PauseTrackingLogs { get; set; }

@@ -18,6 +18,9 @@ namespace WorkManagementPortal.Backend.API.Extensions
             services.AddScoped<IUserRepository, UserRepository>();
             services.AddScoped<INotificationRepository, NotificationRepository>();
             services.AddScoped<IWorkShiftRepository, WorkShiftRepository>();
+            services.AddScoped<IWorkShiftDetailRepository, WorkShiftDetailRepository>();
+            services.AddScoped<IWorkTrackingRepository, WorkTrackingRepository>();
+            services.AddScoped<IScreenShotRepository, ScreenShotRepository>();
             services.AddScoped<ISeedData, SeedData>();
 
             //Configure and Enable CORS

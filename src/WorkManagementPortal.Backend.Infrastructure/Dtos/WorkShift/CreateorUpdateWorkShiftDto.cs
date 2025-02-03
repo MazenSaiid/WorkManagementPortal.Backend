@@ -9,9 +9,9 @@ namespace WorkManagementPortal.Backend.Infrastructure.Dtos.WorkShift
 {
     public class CreateorUpdateWorkShiftDto
     {
-        public ShiftType ShiftType { get; set; }
-        public TimeOnly StartTime { get; set; }
-        public TimeOnly EndTime { get; set; } 
-        public string ShiftName { get; set; } = string.Empty;
+        public ShiftType ShiftType { get; set; } // Type of shift (e.g., Morning, Night, etc.)
+        public string ShiftName { get; set; } = string.Empty; // Name of the shift
+        public bool IsComplex { get; set; } // Flag to indicate if this is a complex work shift
+        public List<WorkShiftDetailDto>? WorkShiftDetails { get; set; } // Details for complex shifts (optional for default shifts)
     }
 }

@@ -21,6 +21,8 @@ namespace WorkManagementPortal.Backend.Infrastructure.Context
         public DbSet<WorkTrackingLog> WorkTrackingLogs { get; set; }
         public DbSet<LeaveEmployeeRequest> LeaveEmployeeRequests { get; set; }
         public DbSet<PauseTrackingLog> PauseTrackingLogs { get; set; }
+        public DbSet<ApplicationActivityLog> ApplicationActivityLogs { get; set; }
+        public DbSet<WorkShiftDetail> WorkShiftDetails { get; set; }
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             base.OnModelCreating(modelBuilder);

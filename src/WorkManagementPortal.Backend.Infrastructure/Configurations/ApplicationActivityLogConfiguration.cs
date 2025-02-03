@@ -9,13 +9,12 @@ using WorkManagementPortal.Backend.Infrastructure.Models;
 
 namespace WorkManagementPortal.Backend.Infrastructure.Configurations
 {
-    public class LeaveRequestConfiguration :IEntityTypeConfiguration<LeaveEmployeeRequest>
+    public class ApplicationActivityLogConfiguration : IEntityTypeConfiguration<ApplicationActivityLog>
     {
-        public void Configure(EntityTypeBuilder<LeaveEmployeeRequest> builder)
+        public void Configure(EntityTypeBuilder<ApplicationActivityLog> builder)
         {
-            // LeaveRequest to User relationship
             builder.HasOne(l => l.User)
-                .WithMany(l =>l.LeaveEmployeeRequests)
+                .WithMany(l=> l.ApplicationActivityLogs)
                 .HasForeignKey(l => l.UserId);
         }
     }

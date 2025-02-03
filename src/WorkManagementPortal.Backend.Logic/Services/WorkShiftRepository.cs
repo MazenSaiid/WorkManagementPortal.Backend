@@ -13,6 +13,7 @@ namespace WorkManagementPortal.Backend.Logic.Services
     {
         public WorkShiftRepository(IPaginationHelper<WorkShift> paginationHelper, ApplicationDbContext context) : base(paginationHelper, context)
         {
+
         }
     }
 }

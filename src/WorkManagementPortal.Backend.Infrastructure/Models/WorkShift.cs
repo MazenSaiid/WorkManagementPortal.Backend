@@ -11,10 +11,10 @@ namespace WorkManagementPortal.Backend.Infrastructure.Models
     {
         public int Id { get; set; }
         public ShiftType ShiftType { get; set; }
-        public TimeOnly StartTime { get; set; }
-        public TimeOnly EndTime { get; set; }
         public string ShiftName { get; set; } = string.Empty ;
+        public bool IsComplex { get; set; }
         public string ShiftTypeName => ShiftType.ToString();
         public ICollection<User> Users { get; set; } = new HashSet<User>();
+        public ICollection<WorkShiftDetail> WorkShiftDetails { get; set; } = new HashSet<WorkShiftDetail>();
     }
 }
