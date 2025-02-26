@@ -51,7 +51,7 @@ namespace WorkManagementPortal.Backend.Logic.Services
                                     .Select(ur => ur.UserId); // Get the userIds for this role
 
             // Query the users by the role's userIds
-            return _userManager.Users.Where(u => userRoles.Contains(u.Id));
+            return _userManager.Users.Include(w=>w.WorkShift).Where(u => userRoles.Contains(u.Id));
         }
 
         public async Task<ValidationResponse> GetAllSupervisorsAsync(int page, int pageSize, bool fetchAll = false)
@@ -352,6 +352,7 @@ namespace WorkManagementPortal.Backend.Logic.Services
                 var nonAdminAndManagersUsers = _userManager.Users.Include(u => u.WorkShift)
                     .Where(user => (user.WorkShift != null));
 
+
                 // Query for users who do not have a WorkTrackingLog for the given date
                 var absentEmployeesQuery = nonAdminAndManagersUsers
                     .Where(user => !_context.WorkTrackingLogs
@@ -362,7 +363,14 @@ namespace WorkManagementPortal.Backend.Logic.Services
                     // Fetch all absent employees without pagination
                     var allAbsentEmployees = absentEmployeesQuery.ToList();
                     var allAbsentEmployeesDTOs = _mapper.Map<IEnumerable<UserDto>>(allAbsentEmployees);
+                    foreach (var user in allAbsentEmployeesDTOs)
+                    {
 
+                        var roles = await _userManager.GetRolesAsync(_mapper.Map<User>(user));
+                        var primaryRole = roles.FirstOrDefault() ?? "No Role"; // Assign the first role or default
+                        user.RoleName = primaryRole;
+                    }
+                    
                     return new UserValidationResponse(true, "All absent employees fetched successfully", null, allAbsentEmployeesDTOs);
                 }
                 else
@@ -371,6 +379,13 @@ namespace WorkManagementPortal.Backend.Logic.Services
                     var paginatedResult = await _paginationHelper.GetPagedResult(absentEmployeesQuery.AsQueryable(), page, pageSize);
 
                     var absentEmployeesDTOs = _mapper.Map<IEnumerable<UserDto>>(paginatedResult.Items);
+                    foreach (var user in absentEmployeesDTOs)
+                    {
+
+                        var roles = await _userManager.GetRolesAsync(_mapper.Map<User>(user));
+                        var primaryRole = roles.FirstOrDefault() ?? "No Role"; // Assign the first role or default
+                        user.RoleName = primaryRole;
+                    }
 
                     return new UserValidationPaginatedResponse(true, "Absent employees fetched successfully", page, pageSize, paginatedResult.TotalCount, null, absentEmployeesDTOs);
                 }
@@ -481,6 +496,48 @@ namespace WorkManagementPortal.Backend.Logic.Services
             return true; // Supervisor and Team Leader IDs validated and assigned successfully
         }
 
+        public async Task<ValidationResponse> GetUsersByRoleNameAsync(string role, int page, int pageSize, bool fetchAll)
+        {
+            try
+            {
+                var users = GetUsersByRole(role);
+
+                
+                if (fetchAll)
+                {
+                    // If fetchAll is true, we return all supervisors without pagination
+                    var allUsers = users.ToList();
+                    var allUsersDTOs = _mapper.Map<IEnumerable<UserDto>>(allUsers);
+
+                    // Set the role for each supervisor
+                    foreach (var user in allUsersDTOs)
+                    {
+                        user.RoleName = role;
+                    }
+
+                    return new UserValidationResponse(true, $"All users with role {role} fetched successfully", null, allUsersDTOs);
+                }
+                else
+                {
+                    // If pagination is needed, apply pagination
+                    var paginatedResult = await _paginationHelper.GetPagedResult(users, page, pageSize);
+                    var usersDTOs = _mapper.Map<IEnumerable<UserDto>>(paginatedResult.Items);
+
+                    // Set the role for each supervisor
+                    foreach (var user in usersDTOs)
+                    {
+                        user.RoleName = role;
+                    }
+
+                    return new UserValidationPaginatedResponse(true, $"All users with role {role} fetched successfully", page, pageSize, paginatedResult.TotalCount, null, usersDTOs);
+                }
+            }
+            catch (Exception ex)
+            {
+                // Return an error response in case of failure
+                return new CountValidationResponse(false, $"Error fetching employees count: {ex.Message}");
+            }
+        }
     }
 
 }

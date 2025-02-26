@@ -20,6 +20,10 @@ namespace WorkManagementPortal.Backend.Infrastructure.Dtos.ScreenShot
     public class ScreenShotLogDto
     {
         public int Id { get; set; }
+        public bool IsIdle { get; set; }
+        public int MouseClicks { get; set; }
+        public int KeyBoardClicks { get; set; }
+        public List<string> KeyBoardInputs { get; set; }
         public DateTime ScreenShotTime { get; set; }
         public FileContentResult ScreenshotFile { get; set; } // Base64 encoded screenshot data
 

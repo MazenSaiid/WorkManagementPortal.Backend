@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using WorkManagementPortal.Backend.Infrastructure.Context;
 
@@ -11,9 +12,11 @@ using WorkManagementPortal.Backend.Infrastructure.Context;
 namespace WorkManagementPortal.Backend.Infrastructure.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20250210182445_AddFlagsForWorkLogs")]
+    partial class AddFlagsForWorkLogs
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -270,19 +273,12 @@ namespace WorkManagementPortal.Backend.Infrastructure.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
-                    b.Property<bool>("IsIdle")
-                        .HasColumnType("bit");
-
                     b.Property<DateTime>("ScreenShotTime")
                         .HasColumnType("datetime2");
 
                     b.Property<byte[]>("Screenshot")
                         .IsRequired()
                         .HasColumnType("varbinary(max)");
-
-                    b.Property<string>("SerializedTrackingObject")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("UserId")
                         .IsRequired()
@@ -459,7 +455,7 @@ namespace WorkManagementPortal.Backend.Infrastructure.Migrations
                     b.Property<bool>("HasCheckedInLate")
                         .HasColumnType("bit");
 
-                    b.Property<bool>("HasCheckedOutEarly")
+                    b.Property<bool>("HasCheckedOutAEarly")
                         .HasColumnType("bit");
 
                     b.Property<bool>("HasFinished")

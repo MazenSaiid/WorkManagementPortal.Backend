@@ -4,6 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using WorkManagementPortal.Backend.API.Dtos.Account;
+using WorkManagementPortal.Backend.Infrastructure.Dtos.Account;
 using WorkManagementPortal.Backend.Infrastructure.Models;
 using WorkManagementPortal.Backend.Logic.Responses;
 
@@ -17,6 +18,7 @@ namespace WorkManagementPortal.Backend.Logic.Interfaces
         Task<ValidationResponse> GetCurrentUserAsync(string userId, string token);
         Task<IList<string>> GetRolesAsync(User user);
         Task<ValidationResponse> RequestPasswordResetAsync(string email);
+        Task<ValidationResponse> ChangePasswordAsync(ChangePasswordDto changePasswordDto);
         Task<ValidationResponse> ResetPasswordAsync(string email, string token, string newPassword);
     }
 

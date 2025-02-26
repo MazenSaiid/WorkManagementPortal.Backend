@@ -15,12 +15,15 @@ namespace WorkManagementPortal.Backend.Logic.Interfaces
         Task<WorkLogValidationResponse> ClockOutAsync(int workLogId);
         Task<PauseLogValidationResponse> StartPauseAsync(StartPauseDto startPauseDto);
         Task<PauseLogValidationResponse> EndPauseAsync(int workLogId);
-        Task<List<WorkTrackingLog>> GetFinishedWorkLogsAsync(DateTime? date);
-        Task<List<WorkTrackingLog>> GetPausedWorkLogsAsync(DateTime? date);
+        Task<List<WorkTrackingLogDTO>> GetFinishedWorkLogsAsync(DateTime? date);
+        Task<List<WorkTrackingLogDTO>> GetOutofScheduleFinishedWorkLogsAsync(DateTime? date);
+        Task<List<WorkTrackingLogDTO>> GetPausedWorkLogsAsync(DateTime? date);
+        Task<List<WorkTrackingLogDTO>> GetOutofSchedulePausedWorkLogsAsync(DateTime? date);
+        Task<List<WorkTrackingLogDTO>> GetOutofScheduleActiveWorkLogsAsync(DateTime? date);
+        Task<List<WorkTrackingLogDTO>> GetActiveWorkLogsAsync(DateTime? date);
+        Task<List<WorkTrackingLogDTO>> GetEarlyCheckoutWorkLogsAsync(DateTime? date);
+        Task<List<WorkTrackingLogDTO>> GetLateCheckInWorkLogsAsync(DateTime? date);
         Task<WorkLogValidationResponse> GetWorkLogsByDateAsync(string userId, DateTime date);
-        Task<List<WorkTrackingLog>> GetActiveWorkLogsAsync(DateTime? date);
-        Task<List<WorkTrackingLog>> GetEarlyCheckoutWorkLogsAsync(DateTime? date);
-        Task<List<WorkTrackingLog>> GetLateCheckInWorkLogsAsync(DateTime? date);
 
     }
 }

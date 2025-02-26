@@ -6,9 +6,10 @@ using System.Threading.Tasks;
 
 namespace WorkManagementPortal.Backend.Infrastructure.Enums
 {
-    public enum UserStatus
+    public enum ActivityStatus
     {
-         Working = 41 ,
-         OnLeave,
+        All = 51, 
+        Idle, 
+        NotIdle
     }
 }

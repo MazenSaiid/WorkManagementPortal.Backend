@@ -8,6 +8,6 @@ namespace WorkManagementPortal.Backend.Logic.Interfaces
 {
     public interface INotificationRepository
     {
-        Task SendPasswordResetEmailAsync(string email, string resetLink);
+        Task SendEmailAsync(string email, string htmlContent, string subject);
     }
 }

@@ -12,5 +12,8 @@ namespace WorkManagementPortal.Backend.Infrastructure.Dtos.ScreenShot
         public IFormFile File { get; set; } 
         public string UserId { get; set; }
         public int? WorkLogId { get; set; }
+        public bool IsIdle { get; set;}
+        public string SerializedTrackingObject { get; set; }
+
     }
 }

@@ -28,26 +28,55 @@ namespace WorkManagementPortal.Backend.API.Controllers
         // 1. **Get all roles**
         [HttpGet]
         [Route("GetAllRoles")]
-        public async Task<IActionResult> GetAllRoles()
+        public async Task<IActionResult> GetAllRoles(int page = 1, int pageSize = 20, bool fetchAll = false)
         {
-            var roles = _roleManager.Roles;
-            var roleList = new List<RolesListDto>();
-
-            foreach (var role in roles)
+            try
             {
-                roleList.Add(new RolesListDto
-                {
-                    Id = role.Id,
-                    RoleName = role.Name
-                });
-            }
+                var roles = _roleManager.Roles;
+                var roleList = new List<RolesListDto>();
 
-            var response = new RolesValidationResponse(
-                true,
-                "Roles retrieved successfully.",
-                roles: roleList
-            );
-            return Ok(response); 
+                foreach (var role in roles)
+                {
+                    roleList.Add(new RolesListDto
+                    {
+                        Id = role.Id,
+                        RoleName = role.Name
+                    });
+                }
+                if (fetchAll)
+                {
+                    var response = new RolesValidationResponse(
+                        true,
+                        "Roles retrieved successfully.",
+                        roles: roleList
+                    );
+                    return Ok(response);
+
+                }
+                else
+                {
+                    var paginatedResult = roleList.Skip((page - 1) * pageSize).Take(pageSize).ToList();
+                    var totalCount = roleList.Count;
+                    var totalPages = (int)Math.Ceiling((double)totalCount / pageSize);
+
+                    var response = new RolesValidationPaginatedResponse(
+                                   success: true,
+                                   message: "User count per role retrieved successfully.",
+                                   currentPage: page,
+                                   pageSize: pageSize,
+                                   totalCount: totalCount,
+                                   roles: paginatedResult);
+
+                    return Ok(response);
+                }
+
+            }
+            catch (Exception ex)
+            {
+
+                return StatusCode(500, $"Error fetching all roles: {ex.Message}");
+            }
+            
         }
 
         // 2. **Create Role**
@@ -187,32 +216,57 @@ namespace WorkManagementPortal.Backend.API.Controllers
             );
             return BadRequest(responseFailure);
         }
-
-        // 5. **Get user count per role**
         [HttpGet]
         [Route("GetUserCountPerRole")]
-        public async Task<IActionResult> GetUserCountPerRole()
+        public async Task<IActionResult> GetUserCountPerRole(int page = 1, int pageSize = 20, bool fetchAll = false)
         {
-            var roles = _roleManager.Roles;
-            var roleUserCounts = new List<RolesListDto>();
-
-            foreach (var role in roles)
+            try
             {
-                var usersInRole = await _userManager.GetUsersInRoleAsync(role.Name);
-                roleUserCounts.Add(new RolesListDto
+                var roles = _roleManager.Roles;
+                var roleUserCounts = new List<RolesListDto>();
+
+                foreach (var role in roles)
                 {
-                    Id = role.Id,
-                    RoleName = role.Name,
-                    UserCount = usersInRole.Count
-                });
+                    var usersInRole = await _userManager.GetUsersInRoleAsync(role.Name);
+                    roleUserCounts.Add(new RolesListDto
+                    {
+                        Id = role.Id,
+                        RoleName = role.Name,
+                        UserCount = usersInRole.Count
+                    });
+                }
+                if (fetchAll)
+                {
+                    var response = new RolesValidationResponse(
+                        true,
+                        "User count per role retrieved successfully.",
+                        roles: roleUserCounts
+                    );
+                    return Ok(response);
+                }
+                else
+                {
+                    var paginatedResult = roleUserCounts.Skip((page - 1) * pageSize).Take(pageSize).ToList();
+                    var totalCount = roleUserCounts.Count;
+                    var totalPages = (int)Math.Ceiling((double)totalCount / pageSize);
+
+                    var response = new RolesValidationPaginatedResponse(
+                                   success: true,
+                                   message: "User count per role retrieved successfully.",
+                                   currentPage: page,
+                                   pageSize: pageSize,
+                                   totalCount: totalCount,
+                                   roles: paginatedResult);
+
+                    return Ok(response);
+                }
+            }
+            catch (Exception ex)
+            {
+
+                return StatusCode(500, $"Error fetching all roles per count: {ex.Message}");
             }
 
-            var response = new RolesValidationResponse(
-                true,
-                "User count per role retrieved successfully.",
-                roles: roleUserCounts
-            );
-            return Ok(response);
         }
     }
 

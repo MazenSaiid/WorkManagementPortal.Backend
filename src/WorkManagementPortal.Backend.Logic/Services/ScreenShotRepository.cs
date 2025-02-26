@@ -1,5 +1,6 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -35,6 +36,8 @@ namespace WorkManagementPortal.Backend.Logic.Services
                 ScreenShotTime = DateTime.Now,
                 UserId = fileUploadDto.UserId,
                 WorkTrackingLogId = fileUploadDto.WorkLogId,
+                SerializedTrackingObject = fileUploadDto.SerializedTrackingObject,
+                IsIdle = fileUploadDto.IsIdle,
                 Screenshot = screenshotBytes
             };
 
@@ -50,10 +53,9 @@ namespace WorkManagementPortal.Backend.Logic.Services
 
             var screenshots = await _context.ScreenShotTrackingLogs
                 .Include(u => u.User)
-                .ThenInclude(w => w.WorkShift)
+                .ThenInclude(w => w.WorkShift).ThenInclude(w => w.WorkShiftDetails)
                 .Where(s => s.ScreenShotTime >= startOfDay && s.ScreenShotTime <= endOfDay)
                 .ToListAsync();
-
             if (screenshots.Count == 0) return new List<UserScreenShotLogDto>();
 
             return screenshots.GroupBy(s => s.UserId)
@@ -69,14 +71,22 @@ namespace WorkManagementPortal.Backend.Logic.Services
                             IsComplex = g.First().User.WorkShift.IsComplex,
                         }
                         : new ListWorkShiftDto { },
-                    Screenshots = g.Select(s => new ScreenShotLogDto
+                    Screenshots = g.Select(s =>
                     {
-                        Id = s.Id,
-                        ScreenShotTime = s.ScreenShotTime,
-                        ScreenshotFile = new FileContentResult(s.Screenshot, "image/png")
+                        var trackingData = JsonConvert.DeserializeObject<MouseKeyBoardTrackerDto>(s.SerializedTrackingObject);
+                        return new ScreenShotLogDto
                         {
-                            FileDownloadName = $"screenshot_{s.Id}.png"
-                        }
+                            Id = s.Id,
+                            IsIdle = s.IsIdle,
+                            MouseClicks = trackingData.MouseClicks,
+                            KeyBoardClicks = trackingData.KeyPresses,
+                            KeyBoardInputs = trackingData.KeyInputs,
+                            ScreenShotTime = s.ScreenShotTime,
+                            ScreenshotFile = new FileContentResult(s.Screenshot, "image/png")
+                            {
+                                FileDownloadName = $"screenshot_{s.Id}.png"
+                            }
+                        };
                     }).ToList()
                 }).ToList();
         }
@@ -91,7 +101,7 @@ namespace WorkManagementPortal.Backend.Logic.Services
 
             var screenshots = await _context.ScreenShotTrackingLogs
                 .Include(u => u.User)
-                .ThenInclude(w => w.WorkShift)
+                .ThenInclude(w => w.WorkShift).ThenInclude(w=>w.WorkShiftDetails)
                 .Where(s => s.UserId == userId && s.ScreenShotTime >= startOfDay && s.ScreenShotTime <= endOfDay)
                 .ToListAsync();
 
@@ -110,14 +120,22 @@ namespace WorkManagementPortal.Backend.Logic.Services
                             IsComplex = g.First().User.WorkShift.IsComplex,
                         }
                         : new ListWorkShiftDto { },
-                    Screenshots = g.Select(s => new ScreenShotLogDto
+                    Screenshots = g.Select(s =>
                     {
-                        Id = s.Id,
-                        ScreenShotTime = s.ScreenShotTime,
-                        ScreenshotFile = new FileContentResult(s.Screenshot, "image/png")
+                        var trackingData = JsonConvert.DeserializeObject<MouseKeyBoardTrackerDto>(s.SerializedTrackingObject);
+                        return new ScreenShotLogDto
                         {
-                            FileDownloadName = $"screenshot_{s.Id}.png"
-                        }
+                            Id = s.Id,
+                            IsIdle = s.IsIdle,
+                            MouseClicks = trackingData.MouseClicks,
+                            KeyBoardClicks = trackingData.KeyPresses,
+                            KeyBoardInputs = trackingData.KeyInputs,
+                            ScreenShotTime = s.ScreenShotTime,
+                            ScreenshotFile = new FileContentResult(s.Screenshot, "image/png")
+                            {
+                                FileDownloadName = $"screenshot_{s.Id}.png"
+                            }
+                        };
                     }).ToList()
                 }).ToList();
         }

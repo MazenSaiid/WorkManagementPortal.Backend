@@ -15,16 +15,20 @@ namespace WorkManagementPortal.Backend.Infrastructure.Models
         public DateTime WorkTimeStart { get; set; }
         public DateTime WorkTimeEnd { get; set; }
         public bool HasFinished { get; set; }
+        public bool WorkedOvertime { get; set; }
+        public bool ExceededPauseHours { get; set; }
+        public bool WorkedOutofSchedule { get; set; }
         public bool IsWorking { get; set; }
         public bool IsPaused { get; set; }
         public bool HasCheckedInLate { get; set; }
-        public bool HasCheckedOutAEarly { get; set; }
+        public bool HasCheckedOutEarly { get; set; }
 
         // Navigation property to PauseTrackingLogs
         public ICollection<PauseTrackingLog> PauseTrackingLogs { get; set; }
         // Navigation property to ScreenShotsTrackingLogs
         public ICollection<ScreenShotTrackingLog> ScreenShotTrackingLogs { get; set; }
         public double ActualWorkDurationInHours { get; set; }
+        public double OvertimeWorkDurationInHours { get; set; }
     }
 
 

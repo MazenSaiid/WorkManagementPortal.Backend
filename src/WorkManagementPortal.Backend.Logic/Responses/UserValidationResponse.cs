@@ -12,7 +12,6 @@ namespace WorkManagementPortal.Backend.Logic.Responses
     {
         // The list of users to be returned
         public IEnumerable<UserDto> Users { get; set; }
-      
 
         public UserValidationResponse(bool success, string message, string token = null, IEnumerable<UserDto> users = null) : base(success, message, token)
         {

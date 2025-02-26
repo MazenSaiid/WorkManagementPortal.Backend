@@ -165,6 +165,16 @@ namespace WorkManagementPortal.Backend.API.Controllers
                         return BadRequest("WorkShiftDetails are required for complex shifts.");
                     }
 
+                    var workShiftDetails = await _workShiftDetailRepository.GetByWorkShiftIdAsync(existingWorkShift.Id);
+                    foreach (var detailDto in updateWorkShiftDto.WorkShiftDetails)
+                    {
+                        var existingDetail = workShiftDetails.FirstOrDefault(d => d.Day.ToString() == detailDto.Day);
+                        if (existingDetail != null)
+                        {
+                            detailDto.Id = existingDetail.Id;
+                        }
+                    }
+
                     workShift.WorkShiftDetails = _mapper.Map<ICollection<WorkShiftDetail>>(updateWorkShiftDto.WorkShiftDetails);
                 }
 

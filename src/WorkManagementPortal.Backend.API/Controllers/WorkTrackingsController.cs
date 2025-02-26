@@ -193,6 +193,24 @@ namespace WorkManagementPortal.Backend.API.Controllers
                 return StatusCode(500, $"Error fetching active work logs: {ex.Message}");
             }
         }
+        [HttpGet("GetUnScheduledActiveWorkLogs")]
+        public async Task<IActionResult> GetUnScheduledActiveWorkLogs(DateTime? date)
+        {
+            try
+            {
+                // Ensure date is provided, otherwise return bad request
+                if (date == null && !date.HasValue)
+                {
+                    return BadRequest("Date is required.");
+                }
+                var response = await _workTrackingRepository.GetOutofScheduleActiveWorkLogsAsync(date);
+                return Ok(response);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, $"Error fetching active work logs: {ex.Message}");
+            }
+        }
         [HttpGet("GetLateCheckInWorkLogs")]
         public async Task<IActionResult> GetLateCheckInWorkLogs(DateTime? date)
         {

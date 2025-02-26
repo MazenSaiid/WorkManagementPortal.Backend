@@ -1,0 +1,74 @@
+﻿<!DOCTYPE html>
+<html>
+<head>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f5f5f5;
+            margin: 0;
+            padding: 0;
+        }
+
+        .container {
+            padding: 20px;
+            border: 1px solid #ddd;
+            max-width: 600px;
+            margin: 40px auto;
+            background-color: #ffffff;
+            border-radius: 8px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        h2 {
+            color: #333333;
+        }
+
+        p {
+            color: #555555;
+            line-height: 1.6;
+        }
+
+        .btn {
+            display: inline-block;
+            background-color: #007BFF;
+            color: black !important;
+            padding: 10px 20px;
+            text-decoration: none;
+            border-radius: 5px;
+            font-weight: bold;
+            margin-top: 10px;
+        }
+
+            .btn:hover {
+                background-color: #0056b3;
+                color: white !important;
+            }
+
+        .footer {
+            margin-top: 20px;
+            font-size: 12px;
+            color: #888888;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h2>Welcome to Innovative BPO!</h2>
+        <p>Dear {{UserName}},</p>
+        <p>We are excited to have you on board! Your account has been successfully created. Here are your login details:</p>
+        <p><strong>Email:</strong> {{UserEmail}}</p>
+        <p><strong>Temporary Password:</strong> {{DefaultPassword}}</p>
+        <p>Please click the button below to access the portal and change your password after logging in:</p>
+        <a class="btn" href="{{PortalLink}}">Go to Portal</a>
+        <p>Please download our application to streamline and start your work:</p>
+        <a class="btn" href="{{DownloadAppLink}}">Download Application</a>
+        <p>If you have any questions or need assistance, feel free to reach out to our support team.</p>
+        <p>Thank you,<br><strong>Innovative BPO Team</strong></p>
+        <hr>
+        <div class="footer">
+            <p>If you encounter any issues, contact us at <a href="mailto:support@innovativebpo.com">support@innovativebpo.com</a>.</p>
+            <p>&copy; 2025 Innovative BPO. All rights reserved.</p>
+        </div>
+    </div>
+</body>
+</html>

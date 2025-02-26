@@ -26,7 +26,6 @@ namespace WorkManagementPortal.Backend.Logic.Services
             _mapper = mapper;
 
         }
-
         public async Task<WorkLogValidationResponse> ClockInAsync(string userId)
         {
             if (string.IsNullOrEmpty(userId))
@@ -44,7 +43,7 @@ namespace WorkManagementPortal.Backend.Logic.Services
 
             var user = await _context.Users
                 .Include(u => u.WorkShift)
-                .ThenInclude(ws => ws.WorkShiftDetails) // Include related WorkShiftDetails
+                .ThenInclude(ws => ws.WorkShiftDetails)
                 .FirstOrDefaultAsync(u => u.Id == userId);
 
             if (user == null)
@@ -52,51 +51,62 @@ namespace WorkManagementPortal.Backend.Logic.Services
                 throw new ArgumentException("User not found.");
             }
 
+            var currentTime = TimeOnly.FromDateTime(DateTime.Now);
+            var currentDay = DateTime.Now.DayOfWeek;
+
+            var workLog = new WorkTrackingLog
+            {
+                UserId = userId,
+                WorkTimeStart = DateTime.Now,
+                WorkDate = DateOnly.FromDateTime(DateTime.Now),
+                IsWorking = true,
+                IsPaused = false,
+                HasCheckedInLate = false,
+                WorkedOutofSchedule = false
+            };
+
             if (user.WorkShift != null && user.WorkShift.IsComplex)
             {
-                
-                var currentTime = TimeOnly.FromDateTime(DateTime.Now);
-                var currentDay = DateTime.Now.DayOfWeek;
+                // Fetch today's shift details
+                var todayShiftDetail = user.WorkShift.WorkShiftDetails
+                    .FirstOrDefault(detail => detail.Day == currentDay);
 
-                
-                    // Fetch today's shift details
-                    var todayShiftDetail = user.WorkShift.WorkShiftDetails
-                        .FirstOrDefault(detail => detail.Day == currentDay);
-
-                    if (todayShiftDetail == null)
-                    {
-                        throw new ArgumentException("No shift scheduled for today.");
-                    }
-
-                
-                var shiftStartTime = todayShiftDetail.StartTime;
-
-                // Adjust shift start time with a grace period
-                var adjustedStartTime = shiftStartTime.Add(TimeSpan.FromMinutes(5));
-                var startedLate = currentTime > adjustedStartTime;
-
-                var workLog = new WorkTrackingLog
+                if (todayShiftDetail == null)
                 {
-                    UserId = userId,
-                    WorkTimeStart = DateTime.Now,
-                    WorkDate = DateOnly.FromDateTime(DateTime.Now),
-                    IsWorking = true,
-                    IsPaused = false,
-                    HasCheckedInLate = startedLate,
-                };
-
-                await _context.WorkTrackingLogs.AddAsync(workLog);
-                await _context.SaveChangesAsync();
-
-                var result = _mapper.Map<WorkTrackingLogDTO>(workLog);
-
-                // Return WorkLogValidationResponse
-                var response = new WorkLogValidationResponse(true, "Clock in successful.", result);
-                return response;
+                    // Case 1: Working on a day they're not scheduled
+                    workLog.WorkedOutofSchedule = true;
+                }
+                else
+                {
+                    // Case 2: Working outside scheduled hours
+                    if (currentTime < todayShiftDetail.StartTime || currentTime > todayShiftDetail.EndTime)
+                    {
+                        workLog.WorkedOutofSchedule = true;
+                    }
+                    else
+                    {
+                        // Adjust shift start time with a grace period
+                        var adjustedStartTime = todayShiftDetail.StartTime.Add(TimeSpan.FromMinutes(10));
+                        workLog.HasCheckedInLate = currentTime > adjustedStartTime;
+                    }
+                }
+            }
+            else
+            {
+                // Case 1 fallback: No work shift defined
+                workLog.WorkedOutofSchedule = true;
             }
 
-            throw new ArgumentException("WorkShift not defined for the user.");
+            await _context.WorkTrackingLogs.AddAsync(workLog);
+            await _context.SaveChangesAsync();
+
+            var result = _mapper.Map<WorkTrackingLogDTO>(workLog);
+
+            // Return WorkLogValidationResponse
+            var response = new WorkLogValidationResponse(true, "Clock in successful.", result);
+            return response;
         }
+
         public async Task<WorkLogValidationResponse> ClockOutAsync(int workLogId)
         {
             if (workLogId <= 0)
@@ -132,29 +142,23 @@ namespace WorkManagementPortal.Backend.Logic.Services
                 var todayShiftDetail = user.WorkShift.WorkShiftDetails
                     .FirstOrDefault(detail => detail.Day == currentDay);
 
-                if (todayShiftDetail == null)
-                {
-                    throw new ArgumentException("No shift scheduled for today.");
-                }
-
-                shiftEndTime = todayShiftDetail.EndTime;
-
+                if (todayShiftDetail != null)
+                    shiftEndTime = todayShiftDetail.EndTime;
             }
 
             // Adjust shift end time with an early checkout grace period
-            var adjustedEndTime = shiftEndTime.Value.Add(TimeSpan.FromMinutes(-5));
+            var adjustedEndTime = shiftEndTime.Value.Add(TimeSpan.FromMinutes(-10));
 
             // Check if the shift end time is before the current time
             if (currentTime < adjustedEndTime)
-            {
-                hasCheckedOutEarly = true;
-            }
+                    hasCheckedOutEarly = true;
+            
 
             workLog.WorkTimeEnd = DateTime.Now;
             workLog.IsWorking = false;
             workLog.IsPaused = false;
             workLog.HasFinished = true;
-            workLog.HasCheckedOutAEarly = hasCheckedOutEarly;
+            workLog.HasCheckedOutEarly = hasCheckedOutEarly;
 
             // Calculate total worked hours excluding pauses
             var totalWorkedHours = (workLog.WorkTimeEnd - workLog.WorkTimeStart).TotalHours;
@@ -175,8 +179,18 @@ namespace WorkManagementPortal.Backend.Logic.Services
             }
 
             var totalPausedHours = pauses.Sum(p => p.PauseDurationInMinutes) / 60;
+
             workLog.ActualWorkDurationInHours = totalWorkedHours - totalPausedHours;
 
+            if (totalPausedHours > 1.0)
+                workLog.ExceededPauseHours = true;
+
+            if (workLog.ActualWorkDurationInHours > 8.0)
+            {
+                workLog.WorkedOvertime = true;
+                workLog.OvertimeWorkDurationInHours = workLog.ActualWorkDurationInHours - 8.0;
+            }
+               
             await _context.SaveChangesAsync();
             var result = _mapper.Map<WorkTrackingLogDTO>(workLog);
 
@@ -184,7 +198,6 @@ namespace WorkManagementPortal.Backend.Logic.Services
             var response = new WorkLogValidationResponse(true, "Clock out successful.", result);
             return response;
         }
-
         public async Task<PauseLogValidationResponse> StartPauseAsync(StartPauseDto startPauseDto)
         {
             if (startPauseDto.WorkLogId <= 0)
@@ -212,14 +225,27 @@ namespace WorkManagementPortal.Backend.Logic.Services
             // Validate against shift details if the shift is complex
             var currentTime = TimeOnly.FromDateTime(DateTime.Now);
             var currentDay = DateTime.Now.DayOfWeek;
-            if (userShift.IsComplex)
+
+            var pausedLogsToday = await _context.PauseTrackingLogs
+                .Where(w => w.UserId == workLog.UserId
+                 && w.WorkDate == DateOnly.FromDateTime(DateTime.Now)).ToListAsync();
+
+            var totalPausedHours = pausedLogsToday.Sum(p => p.PauseDurationInMinutes) / 60;
+
+            if (totalPausedHours > 1.0)
             {
-                var todayShift = userShift.WorkShiftDetails.FirstOrDefault(d => d.Day == currentDay);
-                if (todayShift == null || currentTime < todayShift.StartTime || currentTime > todayShift.EndTime)
-                {
-                    throw new InvalidOperationException("Cannot start a pause outside of shift hours.");
-                }
+                workLog.ExceededPauseHours = true;
+                throw new ArgumentException("Cant start pause because user exceeded the pause hours limit for today.");
             }
+
+            //if (userShift.IsComplex)
+            //{
+                //var todayShift = userShift.WorkShiftDetails.FirstOrDefault(d => d.Day == currentDay);
+                //if (todayShift == null || currentTime < todayShift.StartTime || currentTime > todayShift.EndTime)
+                //{
+                //    throw new InvalidOperationException("Cannot start a pause outside of shift hours.");
+                //}
+            //}
 
             workLog.IsPaused = true;
             workLog.IsWorking = false;
@@ -261,7 +287,7 @@ namespace WorkManagementPortal.Backend.Logic.Services
                 .Include(p => p.WorkTrackingLog)
                 .ThenInclude(w => w.User)
                 .ThenInclude(u => u.WorkShift)
-                .ThenInclude(ws => ws.WorkShiftDetails)
+                .ThenInclude(ws => ws.WorkShiftDetails).Where(p=>p.PauseIsFinished == false)
                 .FirstOrDefaultAsync(p => p.WorkTrackingLogId == workLogId);
 
             if (pauseTracking == null)
@@ -278,14 +304,15 @@ namespace WorkManagementPortal.Backend.Logic.Services
             // Validate end time against the shift's details if the shift is complex
             var currentTime = TimeOnly.FromDateTime(DateTime.Now);
             var currentDay = DateTime.Now.DayOfWeek;
-            if (userShift.IsComplex)
-            {
+
+            //if (userShift.IsComplex)
+            //{
                 var todayShift = userShift.WorkShiftDetails.FirstOrDefault(d => d.Day == currentDay);
-                if (todayShift == null || currentTime > todayShift.EndTime)
-                {
-                    throw new InvalidOperationException("Cannot end a pause outside of shift hours.");
-                }
-            }
+                //if (todayShift == null || currentTime > todayShift.EndTime)
+                //{
+                //    throw new InvalidOperationException("Cannot end a pause outside of shift hours.");
+                //}
+            //}
 
             pauseTracking.PauseEnd = DateTime.Now;
             pauseTracking.PauseDurationInMinutes = (pauseTracking.PauseEnd - pauseTracking.PauseStart).TotalMinutes;
@@ -303,8 +330,43 @@ namespace WorkManagementPortal.Backend.Logic.Services
             var response = new PauseLogValidationResponse(true, "Pause ended and work resumed successfully.", result);
             return response;
         }
+        public async Task<List<WorkTrackingLogDTO>> GetOutofScheduleFinishedWorkLogsAsync(DateTime? date)
+        {
+            var dateValue = date.Value;
+            var endDateTime = dateValue.Date.Add(dateValue.TimeOfDay);
+            var startOfDay = dateValue.Date;
+            var dayOfWeek = dateValue.DayOfWeek;
 
-        public async Task<List<WorkTrackingLog>> GetFinishedWorkLogsAsync(DateTime? date)
+            var workLogs = await _context.WorkTrackingLogs
+                .Include(w => w.User)
+                .ThenInclude(u => u.WorkShift)
+                .ThenInclude(ws => ws.WorkShiftDetails)
+                .Where(w => w.HasFinished == true &&
+                            w.WorkDate == DateOnly.FromDateTime(startOfDay))
+                .ToListAsync();
+            var finishedWorkLogs = new List<WorkTrackingLog>();
+
+            foreach (var log in workLogs)
+            {
+                var workShift = log.User?.WorkShift;
+
+                if (workShift != null && workShift.IsComplex)
+                {
+                    // Fetch the WorkShiftDetail for the specific day
+                    var todayShift = workShift.WorkShiftDetails.FirstOrDefault(d => d.Day == dayOfWeek);
+                    if (todayShift != null)
+                    {
+
+                        finishedWorkLogs.Add(log);
+
+                    }
+                }
+
+            }
+            var response = _mapper.Map<List<WorkTrackingLogDTO>>(finishedWorkLogs);
+            return response;
+        }
+        public async Task<List<WorkTrackingLogDTO>> GetFinishedWorkLogsAsync(DateTime? date)
         {
             var dateValue = date.Value;
             var endDateTime = dateValue.Date.Add(dateValue.TimeOfDay);
@@ -337,13 +399,12 @@ namespace WorkManagementPortal.Backend.Logic.Services
                         }
                     }
                 }
-    
+
             }
-
-            return finishedWorkLogs;
+            var response = _mapper.Map<List<WorkTrackingLogDTO>>(finishedWorkLogs);
+            return response;
         }
-
-        public async Task<List<WorkTrackingLog>> GetPausedWorkLogsAsync(DateTime? date)
+        public async Task<List<WorkTrackingLogDTO>> GetOutofSchedulePausedWorkLogsAsync(DateTime? date)
         {
             var dateValue = date.Value;
             var endDateTime = dateValue.Date.Add(dateValue.TimeOfDay);
@@ -351,13 +412,50 @@ namespace WorkManagementPortal.Backend.Logic.Services
             var dayOfWeek = dateValue.DayOfWeek;
 
             // Query the WorkTrackingLogs where the work is paused
-            var workLogs = await _context.WorkTrackingLogs
+            var workLogs = await _context.WorkTrackingLogs.Include(w => w.PauseTrackingLogs)
                                     .Include(w => w.User)
                                     .ThenInclude(u => u.WorkShift)
                                     .ThenInclude(ws => ws.WorkShiftDetails)
                                    .Where(w => w.IsPaused == true
                                    && w.WorkTimeStart >= startOfDay
                                    && w.WorkTimeEnd != default
+                                   && w.WorkTimeEnd <= endDateTime)
+                                   .ToListAsync();
+
+            var pausedWorkLogs = new List<WorkTrackingLog>();
+
+            foreach (var log in workLogs)
+            {
+                var workShift = log.User?.WorkShift;
+
+                if (workShift != null && workShift.IsComplex)
+                {
+                    // Fetch the WorkShiftDetail for the specific day
+                    var todayShift = workShift.WorkShiftDetails.FirstOrDefault(d => d.Day == dayOfWeek);
+                    if (todayShift != null)
+                    {
+                        pausedWorkLogs.Add(log);
+                    }
+                }
+            }
+            var response = _mapper.Map<List<WorkTrackingLogDTO>>(pausedWorkLogs);
+            return response;
+        }
+        public async Task<List<WorkTrackingLogDTO>> GetPausedWorkLogsAsync(DateTime? date)
+        {
+            var dateValue = date.Value;
+            var endDateTime = dateValue.Date.Add(dateValue.TimeOfDay);
+            var startOfDay = dateValue.Date;
+            var dayOfWeek = dateValue.DayOfWeek;
+
+            // Query the WorkTrackingLogs where the work is paused
+            var workLogs = await _context.WorkTrackingLogs.Include(w => w.PauseTrackingLogs)
+                                    .Include(w => w.User)
+                                    .ThenInclude(u => u.WorkShift)
+                                    .ThenInclude(ws => ws.WorkShiftDetails)
+                                   .Where(w => w.IsPaused == true
+                                   && w.WorkTimeStart >= startOfDay
+                                   
                                    && w.WorkTimeEnd <= endDateTime)
                                    .ToListAsync();
 
@@ -381,10 +479,66 @@ namespace WorkManagementPortal.Backend.Logic.Services
                     }
                 }
             }
-            return pausedWorkLogs;
+            var response = _mapper.Map<List<WorkTrackingLogDTO>>(pausedWorkLogs);
+            return response;
+        }
+        public async Task<List<WorkTrackingLogDTO>> GetOutofScheduleActiveWorkLogsAsync(DateTime? date)
+        {
+            if (date == null)
+            {
+                throw new ArgumentException("Date cannot be null.");
+            }
+
+            var dateValue = date.Value;
+            var startOfDay = dateValue.Date;
+            var dayOfWeek = dateValue.DayOfWeek;
+
+            // Query WorkTrackingLogs and related data
+            var workLogs = await _context.WorkTrackingLogs
+                .Include(w => w.User)
+                .ThenInclude(u => u.WorkShift)
+                .ThenInclude(ws => ws.WorkShiftDetails)
+                .Where(w => w.IsWorking && w.WorkDate == DateOnly.FromDateTime(startOfDay))
+                .ToListAsync();
+
+            var outOfScheduleLogs = new List<WorkTrackingLog>();
+
+            foreach (var log in workLogs)
+            {
+                var workShift = log.User?.WorkShift;
+
+                if (workShift != null && workShift.IsComplex)
+                {
+                    // Fetch the WorkShiftDetail for the specific day
+                    var todayShift = workShift.WorkShiftDetails.FirstOrDefault(d => d.Day == dayOfWeek);
+
+                    if (todayShift == null)
+                    {
+                        // No shift scheduled for this day
+                        outOfScheduleLogs.Add(log);
+                    }
+                    else
+                    {
+                        // Check if work start/end times are within the scheduled shift hours
+                        var shiftStartTime = startOfDay.Add(todayShift.StartTime.ToTimeSpan());
+                        var shiftEndTime = startOfDay.Add(todayShift.EndTime.ToTimeSpan());
+
+                        var workTimeStart = log.WorkTimeStart;
+                        var workTimeEnd = log.WorkTimeEnd == DateTime.MinValue ? DateTime.Now : log.WorkTimeEnd; // Handle open shifts
+
+                        if (workTimeStart.TimeOfDay < shiftStartTime.TimeOfDay || workTimeEnd.TimeOfDay > shiftEndTime.TimeOfDay)
+                        {
+                            outOfScheduleLogs.Add(log);
+                        }
+                    }
+                }
+            }
+
+            var response = _mapper.Map<List<WorkTrackingLogDTO>>(outOfScheduleLogs);
+            return response;
         }
 
-        public async Task<List<WorkTrackingLog>> GetActiveWorkLogsAsync(DateTime? date)
+        public async Task<List<WorkTrackingLogDTO>> GetActiveWorkLogsAsync(DateTime? date)
         {
             if (date == null)
             {
@@ -424,11 +578,10 @@ namespace WorkManagementPortal.Backend.Logic.Services
                     }
                 }
             }
-
-            return activeWorkLogs;
+            var response = _mapper.Map<List<WorkTrackingLogDTO>>(activeWorkLogs);
+            return response;
         }
-
-        public async Task<List<WorkTrackingLog>> GetLateCheckInWorkLogsAsync(DateTime? date)
+        public async Task<List<WorkTrackingLogDTO>> GetLateCheckInWorkLogsAsync(DateTime? date)
         {
 
             var dateValue = date.Value;
@@ -437,7 +590,7 @@ namespace WorkManagementPortal.Backend.Logic.Services
             var dayOfWeek = dateValue.DayOfWeek;
 
             // Query the WorkTrackingLogs where the work is late
-            var workLogs = await _context.WorkTrackingLogs
+            var workLogs = await _context.WorkTrackingLogs.Include(w => w.PauseTrackingLogs)
                 .Include(w => w.User)
                 .ThenInclude(u => u.WorkShift)
                 .ThenInclude(ws => ws.WorkShiftDetails)
@@ -463,23 +616,23 @@ namespace WorkManagementPortal.Backend.Logic.Services
                         }
                     }
                 }
-                
-            }
 
-            return lateChekInWorkLogs;
+            }
+            var response = _mapper.Map<List<WorkTrackingLogDTO>>(lateChekInWorkLogs);
+            return response;
         }
-        public async Task<List<WorkTrackingLog>> GetEarlyCheckoutWorkLogsAsync(DateTime? date)
+        public async Task<List<WorkTrackingLogDTO>> GetEarlyCheckoutWorkLogsAsync(DateTime? date)
         {
             var dateValue = date.Value;
             var endDateTime = dateValue.Date.Add(dateValue.TimeOfDay);
             var startOfDay = dateValue.Date;
             var dayOfWeek = dateValue.DayOfWeek;
             // Query the WorkTrackingLogs where the work is late
-            var workLogs = await _context.WorkTrackingLogs
+            var workLogs = await _context.WorkTrackingLogs.Include(w => w.PauseTrackingLogs)
                 .Include(w => w.User)
                 .ThenInclude(u => u.WorkShift)
                 .ThenInclude(ws => ws.WorkShiftDetails)
-                .Where(w => w.HasCheckedOutAEarly == true
+                .Where(w => w.HasCheckedOutEarly == true
                 && w.WorkDate == DateOnly.FromDateTime(startOfDay))
                 .ToListAsync();
             var lateCheckoutWorkLogs = new List<WorkTrackingLog>();
@@ -501,10 +654,11 @@ namespace WorkManagementPortal.Backend.Logic.Services
                         }
                     }
                 }
-                
+
             }
 
-            return lateCheckoutWorkLogs;
+            var response = _mapper.Map<List<WorkTrackingLogDTO>>(lateCheckoutWorkLogs);
+            return response;
         }
         public async Task<WorkLogValidationResponse> GetWorkLogsByDateAsync(string userId, DateTime date)
         {
@@ -515,7 +669,7 @@ namespace WorkManagementPortal.Backend.Logic.Services
             var startOfDay = date.Date;
             var endOfDay = startOfDay.AddDays(1).AddTicks(-1);
             // Query the WorkTrackingLogs based on the selected date and user
-            var workLog = await _context.WorkTrackingLogs
+            var workLog = await _context.WorkTrackingLogs.Include(w => w.PauseTrackingLogs)
                 .Include(w => w.User)
                 .ThenInclude(u => u.WorkShift)
                 .ThenInclude(ws => ws.WorkShiftDetails)
@@ -524,7 +678,7 @@ namespace WorkManagementPortal.Backend.Logic.Services
 
             if (workLog == null)
             {
-                throw new KeyNotFoundException("No work logs found for the given date.");
+                throw new ArgumentException("No work logs found for the given date.");
             }
 
             var result = _mapper.Map<WorkTrackingLogDTO>(workLog);
@@ -533,5 +687,7 @@ namespace WorkManagementPortal.Backend.Logic.Services
             var response = new WorkLogValidationResponse(true, "Work log fetched successfully.", result);
             return response;
         }
+
+
     }
 }

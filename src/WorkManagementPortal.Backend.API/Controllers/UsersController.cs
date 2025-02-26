@@ -24,7 +24,7 @@ namespace WorkManagementPortal.Backend.API.Controllers
         private readonly IMapper _mapper;
         private readonly RoleManager<IdentityRole> _roleManager;
         private readonly UserManager<User> _userManager;
-        
+
         public UsersController(IUserRepository userRepository, UserManager<User> userManager, RoleManager<IdentityRole> roleManager, IMapper mapper)
         {
             _roleManager = roleManager;
@@ -42,7 +42,9 @@ namespace WorkManagementPortal.Backend.API.Controllers
                 if (fetchAll)
                 {
                     // Fetch all users from the repository
-                    var users = await _userRepository.GetAllAsync(query => query.Include(x => x.WorkShift));
+                    var users = await _userRepository.GetAllAsync(query => query
+                    .Include(x => x.Supervisor).Include(x => x.TeamLeader)
+                    .Include(x => x.WorkShift).ThenInclude(x => x.WorkShiftDetails));
                     if (!users.Any())
                     {
                         return NotFound(new UserValidationResponse(false, " No Users found"));
@@ -75,7 +77,8 @@ namespace WorkManagementPortal.Backend.API.Controllers
                 else
                 {
                     // Fetch paginated users from the repository
-                    var paginatedResult = await _userRepository.GetAllAsync(page, pageSize, query => query.Include(x => x.WorkShift));
+                    var paginatedResult = await _userRepository.GetAllAsync(page, pageSize, query => query.Include(x => x.Supervisor).Include(x => x.TeamLeader)
+                    .Include(x => x.WorkShift).ThenInclude(x => x.WorkShiftDetails));
 
                     // Check if there are any users
                     if (!paginatedResult.Items.Any())
@@ -112,22 +115,68 @@ namespace WorkManagementPortal.Backend.API.Controllers
                     ));
 
                 }
-                
+
             }
             catch (Exception ex)
             {
                 return StatusCode(500, $"Error fetching all users: {ex.Message}");
             }
         }
+        [HttpGet]
+        [Route("GetUsersByRole")]
+        public async Task<IActionResult> GetUsersByRole([FromQuery] string role,int page = 1, int pageSize = 20, bool fetchAll = false)
+        {
+            try
+            {
+                var response = await _userRepository.GetUsersByRoleNameAsync(role, page, pageSize, fetchAll);
 
-        // GET by id
+                if (response.Success)
+                {
+                    return Ok(response);
+                }
+
+                return BadRequest(response);
+
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, $"Error fetching all users: {ex.Message}");
+            }
+        }
+        [HttpGet]
+        [Route("GetAllUsersCount")]
+        public async Task<IActionResult> GetAllUsersCount()
+        {
+            try
+            {
+                var users = await _userRepository.GetAllAsync();
+                if (!users.Any())
+                {
+                    return NotFound(new UserValidationResponse(false, " No Users found"));
+                }
+
+                return Ok(new CountValidationResponse(
+                    success: true,
+                    message: "All users count fetched successfully",
+                    null,
+                    count: users.Count()
+                ));
+
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, $"Error fetching all users count: {ex.Message}");
+            }
+        }
         [HttpGet]
         [Route("GetUserById/{id}")]
         public async Task<IActionResult> GetUserById(string id)
         {
             try
             {
-                var user = await _userRepository.GetByIdAsync(id);
+                var user = await _userRepository.GetByIdAsync(id, query =>
+                query.Include(x => x.Supervisor).Include(x => x.TeamLeader)
+                .Include(x => x.WorkShift).ThenInclude(x => x.WorkShiftDetails));
                 if (user == null)
                 {
                     return NotFound(new UserValidationResponse(false, "User not found"));
@@ -150,8 +199,6 @@ namespace WorkManagementPortal.Backend.API.Controllers
                 return StatusCode(500, $"Error fetching user by ID: {ex.Message}");
             }
         }
-
-        // PUT (updating an existing user)
         [HttpPut]
         [Route("UpdateUser/{id}")]
         public async Task<IActionResult> UpdateUser(string id, [FromBody] UpdateUserDto entity)
@@ -191,8 +238,6 @@ namespace WorkManagementPortal.Backend.API.Controllers
                 return StatusCode(500, $"Error updating user: {ex.Message}");
             }
         }
-
-        // DELETE (removing a user)
         [HttpDelete]
         [Route("DeleteUser/{id}")]
         public async Task<IActionResult> DeleteUser(string id)
@@ -248,9 +293,10 @@ namespace WorkManagementPortal.Backend.API.Controllers
 
         // Get all Absent Users
         [HttpGet("AbsentUsers")]
-        public async Task<IActionResult> GetAllAbsentUsers([FromQuery] DateTime date,int page = 1, int pageSize = 20, bool fetchAll = false)
+        public async Task<IActionResult> GetAllAbsentUsers([FromQuery] DateTime date, int page = 1, int pageSize = 20, bool fetchAll = false)
         {
-            var response = await _userRepository.GetAbsentEmployeesAsync(date ,page, pageSize, fetchAll);
+
+            var response = await _userRepository.GetAbsentEmployeesAsync(date, page, pageSize, fetchAll);
 
             if (response.Success)
             {
@@ -258,12 +304,13 @@ namespace WorkManagementPortal.Backend.API.Controllers
             }
 
             return BadRequest(response);
+
         }
         // Get all supervisors
         [HttpGet("Supervisors")]
         public async Task<IActionResult> GetAllSupervisors(int page = 1, int pageSize = 20, bool fetchAll = false)
         {
-            var response = await _userRepository.GetAllSupervisorsAsync(page,pageSize,fetchAll);
+            var response = await _userRepository.GetAllSupervisorsAsync(page, pageSize, fetchAll);
 
             if (response.Success)
             {
@@ -273,11 +320,10 @@ namespace WorkManagementPortal.Backend.API.Controllers
             return BadRequest(response);
         }
 
-        // Get all team leaders
         [HttpGet("TeamLeaders")]
         public async Task<IActionResult> GetAllTeamLeaders(int page = 1, int pageSize = 20, bool fetchAll = false)
         {
-            var response = await _userRepository.GetAllTeamLeadersAsync(page,pageSize,fetchAll);
+            var response = await _userRepository.GetAllTeamLeadersAsync(page, pageSize, fetchAll);
 
             if (response.Success)
             {
@@ -291,7 +337,7 @@ namespace WorkManagementPortal.Backend.API.Controllers
         [HttpGet("Employees")]
         public async Task<IActionResult> GetAllEmployees(int page = 1, int pageSize = 20, bool fetchAll = false)
         {
-            var response = await _userRepository.GetAllEmployeesAsync(page,pageSize,fetchAll);
+            var response = await _userRepository.GetAllEmployeesAsync(page, pageSize, fetchAll);
 
             if (response.Success)
             {
@@ -305,7 +351,7 @@ namespace WorkManagementPortal.Backend.API.Controllers
         [HttpGet("SupervisorsAndTeamLeaders")]
         public async Task<IActionResult> GetAllSupervisorsAndTheirTeamLeaders(int page = 1, int pageSize = 20, bool fetchAll = false)
         {
-            var response = await _userRepository.GetAllSupervisorsAndTheirTeamLeadersAsync(page,pageSize,fetchAll);
+            var response = await _userRepository.GetAllSupervisorsAndTheirTeamLeadersAsync(page, pageSize, fetchAll);
 
             if (response.Success)
             {
@@ -319,7 +365,7 @@ namespace WorkManagementPortal.Backend.API.Controllers
         [HttpGet("EmployeesAndSupervisors")]
         public async Task<IActionResult> GetAllEmployeesAndTheirSupervisors(int page = 1, int pageSize = 20, bool fetchAll = false)
         {
-            var response = await _userRepository.GetAllEmployeesAndTheirSupervisorsAsync(page,pageSize,fetchAll);
+            var response = await _userRepository.GetAllEmployeesAndTheirSupervisorsAsync(page, pageSize, fetchAll);
 
             if (response.Success)
             {
@@ -335,7 +381,7 @@ namespace WorkManagementPortal.Backend.API.Controllers
         {
             try
             {
-                var response = await _userRepository.GetAllEmployeesWithSupervisorsAndTeamLeadsAsync(page, pageSize,fetchAll);
+                var response = await _userRepository.GetAllEmployeesWithSupervisorsAndTeamLeadsAsync(page, pageSize, fetchAll);
 
                 if (response.Success)
                 {

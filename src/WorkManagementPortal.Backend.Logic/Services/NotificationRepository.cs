@@ -17,7 +17,7 @@ namespace WorkManagementPortal.Backend.Logic.Services
         {
             _configuration = configuration;
         }
-        public async Task SendPasswordResetEmailAsync(string email, string htmlContent)
+        public async Task SendEmailAsync(string email, string htmlContent, string subject)
         {
             var smtpServer = _configuration["EmailSettings:SmtpServer"];
             var smtpPort = int.Parse(_configuration["EmailSettings:SmtpPort"]);
@@ -31,8 +31,8 @@ namespace WorkManagementPortal.Backend.Logic.Services
 
                 var mailMessage = new MailMessage
                 {
-                    From = new MailAddress(_configuration["EmailSettings:SenderEmail"], "Innovative BPO"), // Optional: Set the display name
-                    Subject = "Password Reset Request Mail",
+                    From = new MailAddress(_configuration["EmailSettings:Email"], "Innovative BPO"), // Optional: Set the display name
+                    Subject = subject,
                     Body = htmlContent,
                     IsBodyHtml = true
                 };
@@ -42,5 +42,6 @@ namespace WorkManagementPortal.Backend.Logic.Services
                 await client.SendMailAsync(mailMessage);
             }
         }
+
     }
 }

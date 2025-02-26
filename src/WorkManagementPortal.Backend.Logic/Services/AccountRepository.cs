@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.Extensions.Configuration;
 using Microsoft.IdentityModel.Tokens;
 using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
 using System;
 using System.Collections.Generic;
 using System.IdentityModel.Tokens.Jwt;
@@ -12,6 +13,8 @@ using System.Security.Claims;
 using System.Text;
 using System.Threading.Tasks;
 using WorkManagementPortal.Backend.API.Dtos.Account;
+using WorkManagementPortal.Backend.Infrastructure.Context;
+using WorkManagementPortal.Backend.Infrastructure.Dtos.Account;
 using WorkManagementPortal.Backend.Infrastructure.Models;
 using WorkManagementPortal.Backend.Logic.Interfaces;
 using WorkManagementPortal.Backend.Logic.Responses;
@@ -46,14 +49,19 @@ namespace WorkManagementPortal.Backend.Logic.Services
             var emailExists = await CheckExistingEmailAsync(model.Email);
             if (emailExists)
             {
-                return new ValidationResponse(false, "Email is already in use.");
+                return new ValidationResponse(false, $"Email {model.Email} is already in use.");
             }
-
+            var employeeSerialNumberExists = await CheckExistingSerialNumberAsync(model.EmployeeSerialNumber);
+            if (employeeSerialNumberExists)
+            {
+                return new ValidationResponse(false, $"Serial Number {model.EmployeeSerialNumber} is already in use.");
+            }
 
             if (!string.IsNullOrEmpty(model.RoleName) && await _roleManager.RoleExistsAsync(model.RoleName))
             {
                 var user = new User
                 {
+                    EmployeeSerialNumber = model.EmployeeSerialNumber,
                     UserName = string.Concat(model.FirstName,".",model.LastName),
                     Email = model.Email,
                     FirstName = model.FirstName,
@@ -68,6 +76,16 @@ namespace WorkManagementPortal.Backend.Logic.Services
                 if (result.Succeeded)
                 {
                     await _userManager.AddToRoleAsync(user, model.RoleName);
+                    var htmlTemplate = await File.ReadAllTextAsync("Templates/RegisterNewUserEmail.html");
+
+                    var emailContent = htmlTemplate
+                        .Replace("{{UserName}}", user.UserName)
+                        .Replace("{{UserEmail}}", model.Email)
+                        .Replace("{{DefaultPassword}}", _configuration["DefaultPassword"])
+                        .Replace("{{PortalLink}}", _configuration["App:PortalLink"])
+                        .Replace("{{DownloadAppLink}}", _configuration["App:WPFDownloadLink"]);
+
+                    await _notificationRepository.SendEmailAsync(model.Email, emailContent, _configuration["App:RegisterNewUserSubject"]);
                     return new ValidationResponse(true, "User created successfully!");
                 }
                 return new ValidationResponse(false, "User creation failed. " + string.Join(" ", result.Errors.Select(e => e.Description)));
@@ -78,6 +96,11 @@ namespace WorkManagementPortal.Backend.Logic.Services
             }
 
 
+        }
+
+        private async Task<bool> CheckExistingSerialNumberAsync(int employeeSerialNumber)
+        {
+            return _userManager.Users.Any(e => e.EmployeeSerialNumber == employeeSerialNumber);
         }
 
         public async Task<LoginValidationResponse> LoginAsync(LoginModel model)
@@ -169,7 +192,7 @@ namespace WorkManagementPortal.Backend.Logic.Services
             var htmlTemplate = await File.ReadAllTextAsync("Templates/ResetPasswordEmail.html");
             var emailContent = htmlTemplate.Replace("{{resetLink}}", resetLink);
 
-            await _notificationRepository.SendPasswordResetEmailAsync(email, emailContent);
+            await _notificationRepository.SendEmailAsync(email, emailContent, _configuration["App:PasswordResetSubject"]);
 
             return new ValidationResponse(true, "Password reset link has been sent to your email.");
         }
@@ -195,6 +218,25 @@ namespace WorkManagementPortal.Backend.Logic.Services
             return new ValidationResponse(false, string.Join(", ", result.Errors.Select(e => e.Description)));
         }
 
+        public async Task<ValidationResponse> ChangePasswordAsync(ChangePasswordDto changePasswordDto)
+        {
+            var user = await _userManager.FindByEmailAsync(changePasswordDto.Email);
+            if (user == null)
+            {
+                return new ValidationResponse(false, "No user found with that email address.");
+            }
+
+            // Use the token to reset the user's password
+            var result = await _userManager.ChangePasswordAsync(user, changePasswordDto.OldPassword, changePasswordDto.NewPassword);
+
+            if (result.Succeeded)
+            {
+                return new ValidationResponse(true, "Your password has been reset successfully.");
+            }
+
+            // If the result contains errors, return them as a string
+            return new ValidationResponse(false, string.Join(", ", result.Errors.Select(e => e.Description)));
+        }
     }
 
 }

@@ -9,7 +9,6 @@ using WorkManagementPortal.Backend.Infrastructure.Models;
 using WorkManagementPortal.Backend.Infrastructure.Context;
 using WorkManagementPortal.Backend.Infrastructure.Dtos.ScreenShot;
 using Microsoft.IdentityModel.Tokens;
-using WorkManagementPortal.Backend.Infrastructure.Dtos.WorkShift;
 using WorkManagementPortal.Backend.Logic.Responses;
 using WorkManagementPortal.Backend.Logic.Interfaces;
 using static System.Runtime.InteropServices.JavaScript.JSType;
@@ -60,9 +59,28 @@ namespace WorkManagementPortal.Backend.API.Controllers
             {
 
                 var data = await _screenShotRepository.GetScreenshotsForAllUsersAsync(date);
-                if (data.Count == 0) return Ok(new ScreenShotValidationResponse(false, "No screenshots found."));
-                return Ok(new ScreenShotValidationResponse(true, "Screenshots retrieved successfully.", null, data));
+                if (data.Count == 0) 
+                    return Ok(new ScreenShotValidationResponse(false, "No screenshots found."));
+                if (fetchAll)
+                {
+                    return Ok(new ScreenShotValidationResponse(true, "Screenshots retrieved successfully.", null, data));
+                }
+                else
+                {
+                    var paginatedResult = data.Skip((page - 1) * pageSize).Take(pageSize).ToList();
+                    var totalCount = data.Count;
+                    var totalPages = (int)Math.Ceiling((double)totalCount / pageSize);
 
+                    var response = new ScreenShotValidationPaginatedResponse(
+                                   success: true,
+                                   message: "User screenshots retrieved successfully.",
+                                   currentPage: page,
+                                   pageSize: pageSize,
+                                   totalCount: totalCount,
+                                   userScreenShotLogDto: paginatedResult);
+
+                    return Ok(response);
+                }
             }
             catch (Exception ex)
             {
@@ -77,8 +95,28 @@ namespace WorkManagementPortal.Backend.API.Controllers
             {
 
                 var data = await _screenShotRepository.GetScreenshotsForUserAsync(userId, date);
-                if (data.Count == 0) return Ok(new ScreenShotValidationResponse(false, "No screenshots found."));
-                return Ok(new ScreenShotValidationResponse(true, "Screenshots retrieved successfully.", null, data));
+                if (data.Count == 0) 
+                    return Ok(new ScreenShotValidationResponse(false, "No screenshots found."));
+                if (fetchAll)
+                {
+                    return Ok(new ScreenShotValidationResponse(true, "Screenshots retrieved successfully.", null, data));
+                }
+                else
+                {
+                    var paginatedResult = data.Skip((page - 1) * pageSize).Take(pageSize).ToList();
+                    var totalCount = data.Count;
+                    var totalPages = (int)Math.Ceiling((double)totalCount / pageSize);
+
+                    var response = new ScreenShotValidationPaginatedResponse(
+                                   success: true,
+                                   message: $"User with id {userId} screenshots retrieved successfully.",
+                                   currentPage: page,
+                                   pageSize: pageSize,
+                                   totalCount: totalCount,
+                                   userScreenShotLogDto: paginatedResult);
+
+                    return Ok(response);
+                }
             }
             catch (Exception ex)
             {
